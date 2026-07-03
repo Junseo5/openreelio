@@ -1617,6 +1617,15 @@ pub async fn stabilize_clip(
         (asset.uri.clone(), project.path.clone())
     };
 
+    // Security: the asset URI can be set via UpdateAsset without validation, so
+    // re-validate before handing it to ffmpeg. This rejects `..`/URL/protocol
+    // strings and non-existent files, preventing path traversal, ffmpeg-protocol
+    // SSRF, and argument injection at the input arg.
+    let source_path = validate_local_input_path(&source_path, "stabilize source")
+        .map_err(|e| format!("Invalid source media path: {}", e))?
+        .to_string_lossy()
+        .to_string();
+
     // Get FFmpeg runner
     let ffmpeg_guard = ffmpeg_state.read().await;
     let ffmpeg = ffmpeg_guard.runner().ok_or_else(|| {
@@ -1854,6 +1863,17 @@ pub async fn smart_reframe(
 
         asset.uri.clone()
     };
+
+    // Security: the asset URI can be set via UpdateAsset without validation, so
+    // re-validate before handing it to ffprobe/ffmpeg. This rejects `..`/URL/
+    // protocol strings and non-existent files, preventing path traversal,
+    // ffmpeg-protocol SSRF, and ffprobe argument injection (the URI is passed as a
+    // bare positional arg below, so a leading `-` would otherwise be parsed as an
+    // option; an absolute validated path cannot).
+    let source_path = validate_local_input_path(&source_path, "reframe source")
+        .map_err(|e| format!("Invalid source media path: {}", e))?
+        .to_string_lossy()
+        .to_string();
 
     // Get FFmpeg runner (for ffprobe access)
     let ffmpeg_guard = ffmpeg_state.read().await;
