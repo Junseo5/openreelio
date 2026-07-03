@@ -883,11 +883,22 @@ pub async fn import_diarization_json(
         }
     };
 
-    let json = tokio::fs::read_to_string(&resolved_input_path)
+    // Security: `input_path` is caller-supplied and reaches the filesystem directly.
+    // Validate it (rejects `..` traversal, URL/protocol strings, and non-regular
+    // files) so a compromised renderer cannot coerce reads of arbitrary locations,
+    // and map IO/parse failures to generic messages so the target file's contents
+    // are never reflected back to the caller via error strings.
+    let validated_input_path = crate::core::fs::validate_local_input_path(
+        &resolved_input_path.to_string_lossy(),
+        "diarization inputPath",
+    )
+    .map_err(|_| "Invalid diarization input path".to_string())?;
+
+    let json = tokio::fs::read_to_string(&validated_input_path)
         .await
-        .map_err(|e| format!("Failed to read diarization JSON: {}", e))?;
-    let diarization_segments =
-        parse_imported_diarization_json(&json).map_err(|e| e.to_ipc_error())?;
+        .map_err(|_| "Failed to read diarization JSON file".to_string())?;
+    let diarization_segments = parse_imported_diarization_json(&json)
+        .map_err(|_| "Failed to parse diarization JSON: invalid format".to_string())?;
 
     let runner = AnalysisJobRunner::new(&project_path);
     let mut bundle = runner
