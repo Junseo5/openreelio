@@ -6,8 +6,8 @@
  */
 
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
-import { save } from '@tauri-apps/plugin-dialog';
 import { listen, type UnlistenFn } from '@tauri-apps/api/event';
+import { pickExportDestination } from '@/services/exportDestination';
 import { commands } from '@/bindings';
 import type {
   AudioExportFormat,
@@ -267,10 +267,9 @@ export function useExportDialog({
       const option = getAudioFormatOption(selectedAudioFormat);
       const extension = getAudioFormatExtension(selectedAudioFormat);
 
-      const selected = await save({
-        defaultPath: `${sequenceName}.${extension}`,
+      const selected = await pickExportDestination({
+        defaultName: `${sequenceName}.${extension}`,
         filters: [{ name: option.name, extensions: [extension] }],
-        title: 'Export Audio',
       });
 
       if (selected) {
@@ -284,10 +283,9 @@ export function useExportDialog({
       const option = getTimelineFormatOption(selectedTimelineFormat);
       const extension = getTimelineFormatExtension(selectedTimelineFormat);
 
-      const selected = await save({
-        defaultPath: `${sequenceName}.${extension}`,
+      const selected = await pickExportDestination({
+        defaultName: `${sequenceName}.${extension}`,
         filters: [{ name: option.name, extensions: [extension] }],
-        title: 'Export Editable Timeline',
       });
 
       if (selected) {
@@ -299,10 +297,9 @@ export function useExportDialog({
 
     const extension = getPresetExtension(selectedPreset);
 
-    const selected = await save({
-      defaultPath: `${sequenceName}.${extension}`,
+    const selected = await pickExportDestination({
+      defaultName: `${sequenceName}.${extension}`,
       filters: [{ name: 'Video', extensions: [extension] }],
-      title: 'Export Video',
     });
 
     if (selected) {

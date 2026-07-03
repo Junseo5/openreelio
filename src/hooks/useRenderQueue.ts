@@ -10,7 +10,7 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { listen, type UnlistenFn } from '@tauri-apps/api/event';
 import { commands } from '@/bindings';
 import type { BatchRenderItemDto } from '@/bindings';
-import { save } from '@tauri-apps/plugin-dialog';
+import { pickExportDestination } from '@/services/exportDestination';
 import {
   EXPORT_PRESETS,
   getPresetExtension,
@@ -215,10 +215,9 @@ export function useRenderQueue({
       if (!preset) return;
 
       const extension = getPresetExtension(presetId);
-      const selected = await save({
-        defaultPath: `${sequenceName}_${preset.name.replace(/\s+/g, '_')}.${extension}`,
+      const selected = await pickExportDestination({
+        defaultName: `${sequenceName}_${preset.name.replace(/\s+/g, '_')}.${extension}`,
         filters: [{ name: 'Video', extensions: [extension] }],
-        title: `Export - ${preset.name}`,
       });
 
       if (!selected) return;

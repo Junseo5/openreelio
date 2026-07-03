@@ -6,7 +6,7 @@
 
 import { useState, useCallback } from 'react';
 import { invoke } from '@tauri-apps/api/core';
-import { save } from '@tauri-apps/plugin-dialog';
+import { pickExportDestination } from '@/services/exportDestination';
 import type { Caption } from '@/types';
 import { createLogger } from '@/services/logger';
 
@@ -154,15 +154,14 @@ export function useCaptionExport(): UseCaptionExportReturn {
         const safeName = sanitizeFilename(defaultName);
 
         // Show save dialog
-        const filePath = await save({
-          defaultPath: `${safeName}${getExtension(format)}`,
+        const filePath = await pickExportDestination({
+          defaultName: `${safeName}${getExtension(format)}`,
           filters: [
             {
               name: format === 'srt' ? 'SubRip Subtitle' : 'WebVTT',
               extensions: [format],
             },
           ],
-          title: `Export Captions as ${format.toUpperCase()}`,
         });
 
         if (!filePath) {

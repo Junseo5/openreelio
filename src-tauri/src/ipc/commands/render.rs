@@ -7,7 +7,7 @@ use specta::Type;
 use tauri::State;
 
 use crate::core::{
-    fs::{default_export_allowed_roots, validate_local_input_path, validate_scoped_output_path},
+    fs::{export_allowed_roots, validate_local_input_path, validate_scoped_output_path},
     render::{
         cancel_render_job, register_render_job, unregister_render_job, AudioExportFormat,
         ExportError, ExportPreset, ImageFormat, VideoExportRequest,
@@ -380,7 +380,8 @@ pub async fn start_render(
     };
 
     // Validate output path within allowed roots (defense-in-depth for compromised renderer).
-    let roots = default_export_allowed_roots(&project_path);
+    let approved_dirs = state.approved_export_dirs_snapshot().await;
+    let roots = export_allowed_roots(&project_path, &approved_dirs);
     let root_refs: Vec<&std::path::Path> = roots.iter().map(|p| p.as_path()).collect();
     let validated_output_path =
         validate_scoped_output_path(&output_path, "Output path", &root_refs)?;
@@ -645,7 +646,8 @@ pub async fn render_range(
     };
 
     // Validate output path
-    let roots = default_export_allowed_roots(&project_path);
+    let approved_dirs = state.approved_export_dirs_snapshot().await;
+    let roots = export_allowed_roots(&project_path, &approved_dirs);
     let root_refs: Vec<&std::path::Path> = roots.iter().map(|p| p.as_path()).collect();
     let validated_output_path =
         validate_scoped_output_path(&output_path, "Output path", &root_refs)?;
@@ -882,7 +884,8 @@ pub async fn batch_render(
     };
 
     // Validate all output paths upfront before starting any renders
-    let roots = default_export_allowed_roots(&project_path);
+    let approved_dirs = state.approved_export_dirs_snapshot().await;
+    let roots = export_allowed_roots(&project_path, &approved_dirs);
     let root_refs: Vec<&std::path::Path> = roots.iter().map(|p| p.as_path()).collect();
 
     let mut validated_items: Vec<(ExportSettings, String)> = Vec::with_capacity(items.len());
@@ -1212,7 +1215,8 @@ pub async fn export_frame(
 
         (sequence, assets, project_path)
     };
-    let roots = default_export_allowed_roots(&project_path);
+    let approved_dirs = state.approved_export_dirs_snapshot().await;
+    let roots = export_allowed_roots(&project_path, &approved_dirs);
     let root_refs: Vec<&std::path::Path> = roots.iter().map(|p| p.as_path()).collect();
     let validated_output_path =
         validate_scoped_output_path(&output_path, "Output path", &root_refs)?;
@@ -1324,7 +1328,8 @@ pub async fn export_audio_only(
     };
 
     // Validate output path
-    let roots = default_export_allowed_roots(&project_path);
+    let approved_dirs = state.approved_export_dirs_snapshot().await;
+    let roots = export_allowed_roots(&project_path, &approved_dirs);
     let root_refs: Vec<&std::path::Path> = roots.iter().map(|p| p.as_path()).collect();
     let validated_output_path =
         validate_scoped_output_path(&output_path, "Output path", &root_refs)?;

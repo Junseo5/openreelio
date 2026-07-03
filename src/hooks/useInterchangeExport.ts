@@ -6,7 +6,7 @@
  */
 
 import { useCallback, useState } from 'react';
-import { save } from '@tauri-apps/plugin-dialog';
+import { pickExportDestination } from '@/services/exportDestination';
 import { commands } from '@/bindings';
 import type { InterchangeExportResult, InterchangeFormat } from '@/bindings';
 import { createLogger } from '@/services/logger';
@@ -83,10 +83,9 @@ export function useInterchangeExport(): UseInterchangeExportReturn {
 
       try {
         const safeName = sanitizeFilename(sequenceName);
-        const outputPath = await save({
-          defaultPath: `${safeName}.${config.extension}`,
+        const outputPath = await pickExportDestination({
+          defaultName: `${safeName}.${config.extension}`,
           filters: [{ name: config.filterName, extensions: [config.extension] }],
-          title: `Export as ${config.label}`,
         });
 
         if (!outputPath) {

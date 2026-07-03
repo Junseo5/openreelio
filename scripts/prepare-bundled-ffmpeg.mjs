@@ -16,6 +16,9 @@ const targets = {
         name: 'ffmpeg',
         format: 'zip',
         url: 'https://www.gyan.dev/ffmpeg/builds/ffmpeg-release-essentials.zip',
+        fallbackUrls: [
+          'https://github.com/BtbN/FFmpeg-Builds/releases/download/latest/ffmpeg-master-latest-win64-gpl.zip',
+        ],
         filename: 'ffmpeg-release-essentials.zip',
         binaries: ['ffmpeg.exe', 'ffprobe.exe'],
       },

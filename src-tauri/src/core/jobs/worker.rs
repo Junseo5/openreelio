@@ -1506,7 +1506,7 @@ impl JobProcessor {
     async fn process_final_render(&self, job: &Job) -> Result<serde_json::Value, String> {
         #[cfg(not(test))]
         use crate::core::{
-            fs::{default_export_allowed_roots, validate_scoped_output_path},
+            fs::{export_allowed_roots, validate_scoped_output_path},
             render::{
                 build_render_graph, build_render_plan, validate_export_settings, ExportEngine,
                 ExportPreset, ExportSettings,
@@ -1574,8 +1574,14 @@ impl JobProcessor {
             };
 
             // 2. Validate output path security
-            // Use same logic as IPC command: restrict to user dirs + project dir
-            let roots = default_export_allowed_roots(&project_path);
+            // Use same logic as IPC command: restrict to user dirs + project dir +
+            // session-scoped directories the user approved via the native save dialog.
+            let approved_dirs = self
+                .app_handle
+                .state::<crate::AppState>()
+                .approved_export_dirs_snapshot()
+                .await;
+            let roots = export_allowed_roots(&project_path, &approved_dirs);
             let root_refs: Vec<&std::path::Path> = roots.iter().map(|p| p.as_path()).collect();
 
             let validated_output_path =

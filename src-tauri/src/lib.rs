@@ -940,6 +940,17 @@ pub struct AppState {
     /// Runtime-only approval tokens issued for external agent mutation windows.
     pub external_agent_approval_tokens:
         Mutex<crate::core::external_agent::ExternalAgentApprovalTokenStore>,
+
+    /// Session-scoped allow-list of directories the user confirmed via the native
+    /// save dialog (`pick_export_destination`).
+    ///
+    /// Security model:
+    /// - IPC is a trust boundary; the renderer (webview) could be compromised.
+    /// - Export commands restrict writes to `default_export_allowed_roots` plus this set.
+    /// - This set is populated ONLY from the parent directory of a path the user picked
+    ///   in the native dialog, never from a path argument supplied by the renderer.
+    /// - It is intentionally runtime-only (never persisted to disk) and reset per session.
+    pub approved_export_dirs: Mutex<std::collections::HashSet<PathBuf>>,
 }
 
 /// Runtime source monitor state for dual-viewer workflow.
@@ -1075,12 +1086,31 @@ impl AppState {
             external_agent_approval_tokens: Mutex::new(
                 crate::core::external_agent::ExternalAgentApprovalTokenStore::default(),
             ),
+            approved_export_dirs: Mutex::new(std::collections::HashSet::new()),
         }
     }
 
     /// Stores the app handle for later use (best-effort, idempotent).
     pub fn set_app_handle(&self, handle: tauri::AppHandle) {
         let _ = self.app_handle.set(handle);
+    }
+
+    /// Returns a snapshot of the session-scoped, user-approved export directories.
+    ///
+    /// Call sites combine this with `default_export_allowed_roots` to build the
+    /// allowed roots passed to `validate_scoped_output_path`. Returning a clone keeps
+    /// the lock scope short and avoids holding the mutex across path validation I/O.
+    pub async fn approved_export_dirs_snapshot(&self) -> std::collections::HashSet<PathBuf> {
+        self.approved_export_dirs.lock().await.clone()
+    }
+
+    /// Records the parent directory of a user-confirmed export path as approved.
+    ///
+    /// This is the ONLY way the approved set grows. The input must originate from the
+    /// native save dialog (`pick_export_destination`), never from a renderer-supplied
+    /// argument, so a compromised webview cannot widen the export allow-list.
+    pub async fn approve_export_dir(&self, dir: PathBuf) {
+        self.approved_export_dirs.lock().await.insert(dir);
     }
 
     /// Allowlist a directory for the asset protocol (best-effort).
@@ -1336,6 +1366,8 @@ mod tauri_app {
                 // Interchange export commands (EDL, FCPXML)
                 $crate::ipc::export_edl,
                 $crate::ipc::export_fcpxml,
+                // Export destination picker (native save dialog + allow-list)
+                $crate::ipc::pick_export_destination,
                 // AI commands
                 $crate::ipc::analyze_intent,
                 $crate::ipc::create_proposal,
@@ -1835,6 +1867,8 @@ mod tauri_app {
             // Interchange export commands (EDL, FCPXML)
             ipc::export_edl,
             ipc::export_fcpxml,
+            // Export destination picker (native save dialog + allow-list)
+            ipc::pick_export_destination,
             // AI commands
             ipc::analyze_intent,
             ipc::create_proposal,

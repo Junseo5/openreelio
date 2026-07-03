@@ -7,7 +7,7 @@ use tauri::{Emitter, State};
 
 use crate::core::{
     fs::{
-        default_export_allowed_roots, validate_path_id_component, validate_scoped_output_path,
+        export_allowed_roots, validate_path_id_component, validate_scoped_output_path,
         write_bytes_atomic_no_symlink,
     },
     jobs::{Job, JobType, Priority},
@@ -809,7 +809,8 @@ pub async fn export_captions(
         ));
     }
 
-    let roots = default_export_allowed_roots(&project_path);
+    let approved_dirs = state.approved_export_dirs_snapshot().await;
+    let roots = export_allowed_roots(&project_path, &approved_dirs);
     let root_refs: Vec<&std::path::Path> = roots.iter().map(|p| p.as_path()).collect();
     let validated_output_path =
         validate_scoped_output_path(output_path_trimmed, "outputPath", &root_refs)?;
