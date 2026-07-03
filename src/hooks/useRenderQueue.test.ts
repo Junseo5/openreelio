@@ -9,15 +9,27 @@ import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { act, renderHook, waitFor } from '@testing-library/react';
 import { invoke } from '@tauri-apps/api/core';
 import { listen } from '@tauri-apps/api/event';
-import { save } from '@tauri-apps/plugin-dialog';
 import { useRenderQueue } from './useRenderQueue';
 import { DESKTOP_RUNTIME_TEST_FLAG } from '@/services/runtimeEnvironment';
 
-vi.mock('@tauri-apps/plugin-dialog', () => ({
-  save: vi.fn(),
-}));
-
 type EventHandler = (event: { payload: unknown }) => void;
+
+/**
+ * Wraps a backend invoke mock so the native export-destination picker
+ * (`pick_export_destination`) always resolves to a fixed path, while every other
+ * command is delegated to the provided handler.
+ */
+function withExportPicker(
+  picked: string | null,
+  backend: (command: string) => unknown,
+): (command: string) => Promise<unknown> {
+  return async (command: string) => {
+    if (command === 'pick_export_destination') {
+      return picked;
+    }
+    return backend(command);
+  };
+}
 
 describe('useRenderQueue', () => {
   const handlers = new Map<string, EventHandler>();
@@ -26,7 +38,7 @@ describe('useRenderQueue', () => {
     handlers.clear();
     vi.clearAllMocks();
     globalThis[DESKTOP_RUNTIME_TEST_FLAG] = true;
-    vi.mocked(save).mockResolvedValue('/tmp/out.mp4');
+    vi.mocked(invoke).mockImplementation(withExportPicker('/tmp/out.mp4', () => undefined));
     vi.mocked(listen).mockImplementation(async (event, handler) => {
       handlers.set(String(event), handler as EventHandler);
       return () => {
@@ -55,12 +67,14 @@ describe('useRenderQueue', () => {
   });
 
   it('should process an immediate batch completion event after startBatchRender', async () => {
-    vi.mocked(invoke).mockResolvedValue({
-      batchId: 'batch-1',
-      jobIds: ['job-1'],
-      totalItems: 1,
-      status: 'started',
-    });
+    vi.mocked(invoke).mockImplementation(
+      withExportPicker('/tmp/out.mp4', () => ({
+        batchId: 'batch-1',
+        jobIds: ['job-1'],
+        totalItems: 1,
+        status: 'started',
+      })),
+    );
 
     const { result } = renderHook(() =>
       useRenderQueue({
@@ -96,13 +110,17 @@ describe('useRenderQueue', () => {
   });
 
   it('should not mark a job as cancelled when the backend reports not found', async () => {
-    vi.mocked(save).mockResolvedValue('/tmp/out.mp4');
-    vi.mocked(invoke).mockResolvedValueOnce({
-      batchId: 'batch-1',
-      jobIds: ['job-1'],
-      totalItems: 1,
-      status: 'started',
-    });
+    const backendQueue: unknown[] = [
+      {
+        batchId: 'batch-1',
+        jobIds: ['job-1'],
+        totalItems: 1,
+        status: 'started',
+      },
+    ];
+    vi.mocked(invoke).mockImplementation(
+      withExportPicker('/tmp/out.mp4', () => backendQueue.shift()),
+    );
 
     const { result } = renderHook(() =>
       useRenderQueue({
@@ -123,10 +141,7 @@ describe('useRenderQueue', () => {
       expect(result.current.queue[0]?.status).toBe('rendering');
     });
 
-    vi.mocked(invoke).mockResolvedValueOnce({
-      jobId: 'job-1',
-      cancelled: false,
-    });
+    backendQueue.push({ jobId: 'job-1', cancelled: false });
 
     await act(async () => {
       await result.current.cancelJob('job-1');
@@ -136,12 +151,14 @@ describe('useRenderQueue', () => {
   });
 
   it('should start a queued batch even when the current range inputs become invalid later', async () => {
-    vi.mocked(invoke).mockResolvedValue({
-      batchId: 'batch-1',
-      jobIds: ['job-1'],
-      totalItems: 1,
-      status: 'started',
-    });
+    vi.mocked(invoke).mockImplementation(
+      withExportPicker('/tmp/out.mp4', () => ({
+        batchId: 'batch-1',
+        jobIds: ['job-1'],
+        totalItems: 1,
+        status: 'started',
+      })),
+    );
 
     const { result } = renderHook(() =>
       useRenderQueue({
@@ -188,12 +205,14 @@ describe('useRenderQueue', () => {
   });
 
   it('should preserve the full structured request when adding high quality exports to the queue', async () => {
-    vi.mocked(invoke).mockResolvedValue({
-      batchId: 'batch-1',
-      jobIds: ['job-1'],
-      totalItems: 1,
-      status: 'started',
-    });
+    vi.mocked(invoke).mockImplementation(
+      withExportPicker('/tmp/out.mp4', () => ({
+        batchId: 'batch-1',
+        jobIds: ['job-1'],
+        totalItems: 1,
+        status: 'started',
+      })),
+    );
 
     const { result } = renderHook(() =>
       useRenderQueue({

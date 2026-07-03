@@ -281,6 +281,28 @@ pub fn default_export_allowed_roots(project_dir: &Path) -> Vec<PathBuf> {
     roots
 }
 
+/// Builds the full set of directories the GUI is willing to write user exports into.
+///
+/// This combines [`default_export_allowed_roots`] with a session-scoped allow-list of
+/// directories the user explicitly confirmed via the native save dialog
+/// (`pick_export_destination`). The approved set can only be populated through that
+/// user-driven dialog, never from a path argument supplied by the renderer, so a
+/// compromised webview cannot widen the allow-list by forging an output path.
+///
+/// Security note: the returned roots are still subject to the `..`/symlink/directory
+/// safety checks inside [`validate_scoped_output_path`]. This helper only widens *where*
+/// the user may save, not *how* the path is validated.
+pub fn export_allowed_roots(
+    project_dir: &Path,
+    approved_dirs: &std::collections::HashSet<PathBuf>,
+) -> Vec<PathBuf> {
+    let mut roots = default_export_allowed_roots(project_dir);
+    for dir in approved_dirs {
+        roots.push(dir.clone());
+    }
+    roots
+}
+
 /// Async version of `validate_local_input_path`.
 ///
 /// Uses tokio's async filesystem operations to avoid blocking the async runtime.
@@ -1282,6 +1304,74 @@ mod tests {
             result.is_err(),
             "expected output in prefix-sibling dir to be rejected"
         );
+    }
+
+    #[test]
+    fn test_export_allowed_roots_includes_project_and_approved_dirs() {
+        let project = TempDir::new().unwrap();
+        let approved = TempDir::new().unwrap();
+
+        let mut approved_dirs = std::collections::HashSet::new();
+        approved_dirs.insert(approved.path().to_path_buf());
+
+        let roots = export_allowed_roots(project.path(), &approved_dirs);
+
+        assert!(
+            roots.iter().any(|r| r == project.path()),
+            "project directory must always be an allowed root"
+        );
+        assert!(
+            roots.iter().any(|r| r == approved.path()),
+            "user-approved directory must be an allowed root"
+        );
+    }
+
+    #[test]
+    fn test_validate_scoped_output_path_allows_within_approved_dir() {
+        // A directory outside the default roots becomes valid once it is approved.
+        let project = TempDir::new().unwrap();
+        let approved = TempDir::new().unwrap();
+
+        let mut approved_dirs = std::collections::HashSet::new();
+        approved_dirs.insert(approved.path().to_path_buf());
+
+        let out = approved.path().join("export.mp4");
+        let out_str = out.to_string_lossy().to_string();
+
+        let roots = export_allowed_roots(project.path(), &approved_dirs);
+        let root_refs: Vec<&Path> = roots.iter().map(|p| p.as_path()).collect();
+
+        let result = validate_scoped_output_path(&out_str, "Output path", &root_refs);
+        assert!(
+            result.is_ok(),
+            "path under an approved directory must validate: {result:?}"
+        );
+    }
+
+    #[test]
+    fn test_validate_scoped_output_path_rejects_outside_default_and_approved_dirs() {
+        // A forged path that is neither under the default roots nor approved must be rejected.
+        let project = TempDir::new().unwrap();
+        let approved = TempDir::new().unwrap();
+        let forged = TempDir::new().unwrap();
+
+        let mut approved_dirs = std::collections::HashSet::new();
+        approved_dirs.insert(approved.path().to_path_buf());
+
+        let out = forged.path().join("evil.mp4");
+        let out_str = out.to_string_lossy().to_string();
+
+        let roots = export_allowed_roots(project.path(), &approved_dirs);
+        let root_refs: Vec<&Path> = roots.iter().map(|p| p.as_path()).collect();
+
+        let result = validate_scoped_output_path(&out_str, "Output path", &root_refs);
+        assert!(
+            result.is_err(),
+            "path outside default roots and approved dirs must be rejected"
+        );
+        assert!(result
+            .unwrap_err()
+            .contains("must be within an allowed directory"));
     }
 
     #[cfg(unix)]

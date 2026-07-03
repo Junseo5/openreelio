@@ -752,6 +752,25 @@ async exportFcpxml(sequenceId: string, outputPath: string) : Promise<Result<Inte
 }
 },
 /**
+ * Opens a native save dialog for an export destination.
+ * 
+ * On confirmation, the parent directory of the chosen path is normalized and added
+ * to the session-scoped approved-export allow-list, then the absolute path is
+ * returned. On cancel, returns `Ok(None)`.
+ * 
+ * # Arguments
+ * * `default_name` - Suggested file name pre-filled in the dialog.
+ * * `filters` - File type filters shown in the dialog.
+ * * `title` - Optional title shown on the native save dialog.
+ */
+async pickExportDestination(defaultName: string, filters: ExportDialogFilter[], title: string | null) : Promise<Result<string | null, string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("pick_export_destination", { defaultName, filters, title }) };
+} catch (e) {
+    return { status: "error", error: e  as any };
+}
+},
+/**
  * Analyzes user intent and generates an EditScript
  */
 async analyzeIntent(intent: string, context: AIContextDto) : Promise<Result<EditScriptDto, string>> {
@@ -4738,6 +4757,18 @@ tempoClassification: TempoClassification }
  * Response for estimate_generation_cost
  */
 export type EstimateGenerationCostResponse = { estimatedCents: number; quality: string; durationSec: number }
+/**
+ * A file type filter for the native save dialog (IPC DTO).
+ */
+export type ExportDialogFilter = { 
+/**
+ * Human-readable filter name (e.g., "Video").
+ */
+name: string; 
+/**
+ * File extensions associated with the filter, without the leading dot (e.g., ["mp4"]).
+ */
+extensions: string[] }
 /**
  * User-facing quality tier that maps to concrete encoder settings.
  */

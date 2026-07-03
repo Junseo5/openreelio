@@ -5,9 +5,7 @@
 use tauri::State;
 
 use crate::core::{
-    fs::{
-        default_export_allowed_roots, validate_scoped_output_path, write_bytes_atomic_no_symlink,
-    },
+    fs::{export_allowed_roots, validate_scoped_output_path, write_bytes_atomic_no_symlink},
     interchange::{edl, models::InterchangeExportResult, xml},
     CoreError,
 };
@@ -56,7 +54,8 @@ pub async fn export_edl(
     };
 
     // Validate output path
-    let roots = default_export_allowed_roots(&project_path);
+    let approved_dirs = state.approved_export_dirs_snapshot().await;
+    let roots = export_allowed_roots(&project_path, &approved_dirs);
     let root_refs: Vec<&std::path::Path> = roots.iter().map(|p| p.as_path()).collect();
     let validated_path = validate_scoped_output_path(&output_path, "EDL output path", &root_refs)?;
 
@@ -128,7 +127,8 @@ pub async fn export_fcpxml(
     };
 
     // Validate output path
-    let roots = default_export_allowed_roots(&project_path);
+    let approved_dirs = state.approved_export_dirs_snapshot().await;
+    let roots = export_allowed_roots(&project_path, &approved_dirs);
     let root_refs: Vec<&std::path::Path> = roots.iter().map(|p| p.as_path()).collect();
     let validated_path =
         validate_scoped_output_path(&output_path, "FCPXML output path", &root_refs)?;

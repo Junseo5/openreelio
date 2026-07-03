@@ -75,6 +75,9 @@ pub mod terminal;
 // Interchange commands (EDL/FCPXML export)
 pub mod interchange;
 
+// Export destination picker (native save dialog + session-scoped allow-list)
+pub mod export_dialog;
+
 // Transcript-based editing commands (S35-001)
 pub mod transcript_editing;
 
@@ -118,6 +121,9 @@ pub use terminal::*;
 
 // Re-export interchange commands
 pub use interchange::*;
+
+// Re-export export destination picker
+pub use export_dialog::*;
 
 // Re-export transcript editing commands
 pub use transcript_editing::*;

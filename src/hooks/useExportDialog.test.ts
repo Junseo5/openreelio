@@ -9,12 +9,7 @@ import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { act, renderHook, waitFor } from '@testing-library/react';
 import { invoke } from '@tauri-apps/api/core';
 import { listen } from '@tauri-apps/api/event';
-import { save } from '@tauri-apps/plugin-dialog';
 import { useExportDialog } from './useExportDialog';
-
-vi.mock('@tauri-apps/plugin-dialog', () => ({
-  save: vi.fn(),
-}));
 
 describe('useExportDialog', () => {
   beforeEach(() => {
@@ -355,7 +350,7 @@ describe('useExportDialog', () => {
   });
 
   it('should browse with audio-specific filters when audio export is selected', async () => {
-    vi.mocked(save).mockResolvedValue('/tmp/out.ogg');
+    vi.mocked(invoke).mockResolvedValue('/tmp/out.ogg');
 
     const { result } = renderHook(() =>
       useExportDialog({
@@ -374,13 +369,11 @@ describe('useExportDialog', () => {
       await result.current.handleBrowse();
     });
 
-    expect(save).toHaveBeenCalledWith(
-      expect.objectContaining({
-        defaultPath: 'Sequence.ogg',
-        title: 'Export Audio',
-        filters: [{ name: 'Ogg Audio', extensions: ['ogg'] }],
-      }),
-    );
+    expect(invoke).toHaveBeenCalledWith('pick_export_destination', {
+      defaultName: 'Sequence.ogg',
+      filters: [{ name: 'Ogg Audio', extensions: ['ogg'] }],
+      title: 'Export Audio',
+    });
     expect(result.current.outputPath).toBe('/tmp/out.ogg');
   });
 

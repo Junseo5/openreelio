@@ -62,6 +62,10 @@
       "certificateThumbprint": null,
       "timestampUrl": "http://timestamp.digicert.com",
       "digestAlgorithm": "sha256",
+      "webviewInstallMode": {
+        "type": "offlineInstaller",
+        "silent": true
+      },
       "wix": null,
       "nsis": {
         "compression": "lzma",
