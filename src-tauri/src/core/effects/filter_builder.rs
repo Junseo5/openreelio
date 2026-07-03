@@ -132,10 +132,19 @@ fn escape_ffmpeg_filter_value(raw: &str) -> String {
     // FFmpeg filtergraphs treat `:` and `,` as separators and `\` as an escape character.
     // Windows paths also contain `\` and `:` (drive letter), so we must escape them to
     // keep filter strings replayable and safe against filtergraph injection.
+    //
+    // Values produced here are always emitted inside a single-quoted region
+    // (e.g. `subtitles='<value>'`). Inside single quotes FFmpeg treats every
+    // character literally, including `\`, so a bare `\'` does NOT escape a quote —
+    // it terminates the quoted region and lets subsequent `;`/`[`/`]` inject new
+    // filter nodes (arbitrary file read/write via `movie=`/output filters). The
+    // only safe way to embed a literal `'` is to close the quote, emit an escaped
+    // quote, and reopen: `'\''`. This keeps parsing inside the quoted region for
+    // every possible input, so no other character can break out.
     raw.replace('\\', r"\\")
         .replace(':', r"\:")
         .replace(',', r"\,")
-        .replace('\'', r"\'")
+        .replace('\'', r"'\''")
 }
 
 fn escape_drawtext_value(raw: &str) -> String {
@@ -1386,10 +1395,13 @@ impl Effect {
 
         let zoom = self.get_float("zoom").unwrap_or(0.0).clamp(-100.0, 100.0);
 
+        // Emitted inside a single-quoted region (`input='<path>'`); a literal `'`
+        // must be closed-escaped-reopened as `'\''` so it cannot terminate the
+        // quote and inject additional filter nodes. See escape_ffmpeg_filter_value.
         let escaped_path = analysis_path
             .replace('\\', "/")
             .replace(':', "\\:")
-            .replace('\'', "\\'");
+            .replace('\'', "'\\''");
 
         format!(
             "vidstabtransform=input='{}':smoothing={}:crop={}:optzoom={}:zoom={:.1}:interpol=bilinear",
@@ -2578,9 +2590,41 @@ mod tests {
         );
 
         let filter = effect.to_filter_string("in", "out");
+        // A literal single quote is emitted as the FFmpeg close-escape-reopen
+        // sequence `'\''` so it cannot terminate the surrounding single-quoted
+        // region; `'q'` therefore becomes `'\''q'\''`.
         assert!(
-            filter.contains("text='100\\% C\\:\\\\tmp\\\\foo\\:bar\\,baz \\'q\\''"),
+            filter.contains("text='100\\% C\\:\\\\tmp\\\\foo\\:bar\\,baz '\\''q'\\'''"),
             "Unexpected drawtext escaping: {}",
+            filter
+        );
+    }
+
+    #[test]
+    fn test_subtitles_single_quote_cannot_break_out_of_filter() {
+        // A crafted subtitles path with a single quote plus filtergraph separators
+        // must NOT be able to close the quoted region and inject a new filter node
+        // (e.g. `movie=` for arbitrary file read/write). Every literal quote is
+        // rewritten to `'\''`, so the injected `;`/`[`/`]` stay inside the quotes.
+        let mut effect = Effect::new(EffectType::Subtitle);
+        effect.set_param(
+            "file",
+            ParamValue::String("x';[in]movie=filename=/etc/passwd[out];[out]".to_string()),
+        );
+
+        let filter = effect.to_filter_string("in", "out");
+        // The raw breakout sequence `x';` must never survive: an unescaped `'`
+        // followed by `;` would close the quote and make `;` a filtergraph
+        // separator. Correct escaping turns it into `x'\'';`, where the reopened
+        // quote keeps the following `;`/`[`/`]`/`movie=` inside the filename value.
+        assert!(
+            !filter.contains("x';"),
+            "Single quote must not terminate the quoted region: {}",
+            filter
+        );
+        assert!(
+            filter.contains("subtitles='x'\\'';[in]movie=filename=/etc/passwd[out];[out]'"),
+            "Expected close-escape-reopen quoting of the injected value, got: {}",
             filter
         );
     }

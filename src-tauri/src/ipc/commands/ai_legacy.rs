@@ -2257,6 +2257,55 @@ pub async fn configure_ai_provider(
 ) -> Result<ProviderStatusDto, String> {
     use crate::core::ai::{create_provider, ProviderConfig, ProviderRuntimeStatus, ProviderType};
 
+    // Returns true if `host` (already lowercased, brackets trimmed) refers to a
+    // loopback, private, link-local, or otherwise internal address. Mirrors the
+    // rejection set used by validate_stock_download_url so a caller-supplied cloud
+    // base URL cannot forward the API key to an internal service (SSRF).
+    fn base_url_host_is_internal(host: &str) -> bool {
+        if let Ok(ip) = host.parse::<std::net::IpAddr>() {
+            return match ip {
+                std::net::IpAddr::V4(ip) => {
+                    let octets = ip.octets();
+                    ip.is_private()
+                        || ip.is_loopback()
+                        || ip.is_link_local()
+                        || ip.is_unspecified()
+                        || ip.is_broadcast()
+                        || octets[0] == 0
+                        || (octets[0] == 100 && (64..=127).contains(&octets[1]))
+                }
+                std::net::IpAddr::V6(ip) => {
+                    ip.is_loopback()
+                        || ip.is_unspecified()
+                        || ip.is_unique_local()
+                        || ip.is_unicast_link_local()
+                }
+            };
+        }
+
+        if host == "localhost"
+            || host.ends_with(".localhost")
+            || host.ends_with(".local")
+            || host == "0.0.0.0"
+            || host.starts_with("0.")
+            || host.starts_with("127.")
+            || host.starts_with("10.")
+            || host.starts_with("100.64.")
+            || host.starts_with("169.254.")
+            || host.starts_with("192.168.")
+            || host == "::1"
+        {
+            return true;
+        }
+
+        matches!(
+            host.strip_prefix("172.")
+                .and_then(|rest| rest.split('.').next())
+                .and_then(|octet| octet.parse::<u8>().ok()),
+            Some(second_octet) if (16..=31).contains(&second_octet)
+        )
+    }
+
     fn validate_base_url(url: &str, allow_http: bool) -> Result<(), String> {
         let url = url.trim();
         if url.is_empty() {
@@ -2274,6 +2323,22 @@ pub async fn configure_ai_provider(
         }
         if is_http && !allow_http {
             return Err("Base URL must use https:// for cloud providers".to_string());
+        }
+
+        // For cloud providers (`allow_http == false`) the API key is sent to this
+        // host in an auth header, so a caller-supplied base URL must not target an
+        // internal/private address. Local providers intentionally use localhost and
+        // are exempt.
+        if !allow_http {
+            let parsed = reqwest::Url::parse(url).map_err(|e| format!("Invalid base URL: {e}"))?;
+            let host = parsed
+                .host_str()
+                .ok_or_else(|| "Base URL must include a host".to_string())?
+                .trim_matches(|ch| ch == '[' || ch == ']')
+                .to_ascii_lowercase();
+            if base_url_host_is_internal(&host) {
+                return Err("Base URL must not target local/private hosts".to_string());
+            }
         }
 
         Ok(())
@@ -2338,6 +2403,30 @@ pub async fn configure_ai_provider(
             cfg
         }
     };
+
+    // Warn when a cloud provider is pointed at a non-default endpoint: the API key
+    // is sent to this host in the auth header. Internal/private hosts are already
+    // rejected by validate_base_url; this surfaces use of any external custom
+    // endpoint for auditability. (Logging the URL is safe; the key is never logged.)
+    if !matches!(provider_type, ProviderType::Local) {
+        if let Some(custom_base) = requested_base_url
+            .as_deref()
+            .map(str::trim)
+            .filter(|value| !value.is_empty())
+        {
+            let provider_label = match provider_type {
+                ProviderType::OpenAI => "openai",
+                ProviderType::Anthropic => "anthropic",
+                ProviderType::Gemini => "gemini",
+                ProviderType::Local => "local",
+            };
+            tracing::warn!(
+                provider = provider_label,
+                base_url = %custom_base,
+                "Cloud AI provider configured with a custom base URL; the API key will be sent to this host"
+            );
+        }
+    }
 
     // Create the provider
     let provider = create_provider(provider_config).map_err(|e| e.to_ipc_error())?;
