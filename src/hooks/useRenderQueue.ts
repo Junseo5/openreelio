@@ -218,6 +218,7 @@ export function useRenderQueue({
       const selected = await pickExportDestination({
         defaultName: `${sequenceName}_${preset.name.replace(/\s+/g, '_')}.${extension}`,
         filters: [{ name: 'Video', extensions: [extension] }],
+        title: `Export - ${preset.name}`,
       });
 
       if (!selected) return;

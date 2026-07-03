@@ -86,6 +86,7 @@ export function useInterchangeExport(): UseInterchangeExportReturn {
         const outputPath = await pickExportDestination({
           defaultName: `${safeName}.${config.extension}`,
           filters: [{ name: config.filterName, extensions: [config.extension] }],
+          title: `Export as ${config.label}`,
         });
 
         if (!outputPath) {

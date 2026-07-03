@@ -25,6 +25,8 @@ export interface PickExportDestinationArgs {
   defaultName: string;
   /** File type filters shown in the dialog. */
   filters: ExportDestinationFilter[];
+  /** Optional title shown on the native save dialog. */
+  title?: string;
 }
 
 /**
@@ -36,6 +38,7 @@ export async function pickExportDestination(args: PickExportDestinationArgs): Pr
   const selected = await invoke<string | null>('pick_export_destination', {
     defaultName: args.defaultName,
     filters: args.filters,
+    title: args.title,
   });
   return selected ?? null;
 }

@@ -26,6 +26,7 @@ describe('useInterchangeExport', () => {
     expect(invoke).toHaveBeenCalledWith('pick_export_destination', {
       defaultName: 'My_Sequence.edl',
       filters: [{ name: 'Edit Decision List', extensions: ['edl'] }],
+      title: 'Export as EDL',
     });
     expect(result.current.status).toEqual({ type: 'idle' });
   });

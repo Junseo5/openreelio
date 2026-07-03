@@ -162,6 +162,7 @@ export function useCaptionExport(): UseCaptionExportReturn {
               extensions: [format],
             },
           ],
+          title: `Export Captions as ${format.toUpperCase()}`,
         });
 
         if (!filePath) {
