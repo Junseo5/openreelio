@@ -372,6 +372,7 @@ describe('useExportDialog', () => {
     expect(invoke).toHaveBeenCalledWith('pick_export_destination', {
       defaultName: 'Sequence.ogg',
       filters: [{ name: 'Ogg Audio', extensions: ['ogg'] }],
+      title: 'Export Audio',
     });
     expect(result.current.outputPath).toBe('/tmp/out.ogg');
   });

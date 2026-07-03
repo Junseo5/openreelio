@@ -270,6 +270,7 @@ export function useExportDialog({
       const selected = await pickExportDestination({
         defaultName: `${sequenceName}.${extension}`,
         filters: [{ name: option.name, extensions: [extension] }],
+        title: 'Export Audio',
       });
 
       if (selected) {

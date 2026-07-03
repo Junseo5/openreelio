@@ -37,11 +37,13 @@ pub struct ExportDialogFilter {
 /// # Arguments
 /// * `default_name` - Suggested file name pre-filled in the dialog.
 /// * `filters` - File type filters shown in the dialog.
+/// * `title` - Optional title shown on the native save dialog.
 #[tauri::command]
 #[specta::specta]
 pub async fn pick_export_destination(
     default_name: String,
     filters: Vec<ExportDialogFilter>,
+    title: Option<String>,
     app_handle: AppHandle,
 ) -> Result<Option<String>, String> {
     // Run the native save dialog off the async runtime via its callback API,
@@ -51,6 +53,11 @@ pub async fn pick_export_destination(
     let mut builder = app_handle.dialog().file();
     if !default_name.trim().is_empty() {
         builder = builder.set_file_name(default_name);
+    }
+    if let Some(dialog_title) = title {
+        if !dialog_title.trim().is_empty() {
+            builder = builder.set_title(dialog_title);
+        }
     }
     for filter in &filters {
         let extension_refs: Vec<&str> = filter.extensions.iter().map(|s| s.as_str()).collect();
@@ -78,7 +85,12 @@ pub async fn pick_export_destination(
 
     let parent = path
         .parent()
-        .ok_or_else(|| format!("Selected export path has no parent directory: {}", path.display()))?
+        .ok_or_else(|| {
+            format!(
+                "Selected export path has no parent directory: {}",
+                path.display()
+            )
+        })?
         .to_path_buf();
 
     // Normalize the parent directory before approving it. Canonicalization resolves
