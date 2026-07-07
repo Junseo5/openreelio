@@ -10,6 +10,10 @@
 
 [Features](#features) • [Installation](#installation) • [Documentation](#documentation) • [Contributing](#contributing)
 
+<br />
+
+<img src="docs/assets/demo.gif" alt="OpenReelio in action — prompt-driven video editing" width="800" />
+
 </div>
 
 ---
@@ -189,19 +193,19 @@ Notes:
 
 ## Roadmap
 
-### v0.1.0 (Current)
+### v0.1.x (Current)
 
 - [x] Core timeline editing
 - [x] Effects and transitions
 - [x] Audio mixing
 - [x] Export pipeline (7 presets)
+- [x] Release and distribution (signed auto-updates, bundled FFmpeg + CLI)
+- [x] Speech-to-text transcription (Whisper, optional build feature)
 
-### v0.2.0
+### Next
 
-- [ ] AI provider integration hardening
-- [ ] Speech-to-text transcription (Whisper, optional build feature)
+- [ ] AI agent workflow hardening
 - [ ] Smart asset search (optional build feature)
-- [ ] Release and distribution
 
 ### Future
 
