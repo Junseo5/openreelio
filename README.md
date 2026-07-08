@@ -10,10 +10,6 @@
 
 [Features](#features) • [Installation](#installation) • [Documentation](#documentation) • [Contributing](#contributing)
 
-<br />
-
-<img src="docs/assets/demo.gif" alt="OpenReelio in action — prompt-driven video editing" width="800" />
-
 </div>
 
 ---
@@ -42,22 +38,22 @@ OpenReelio is an AI-powered desktop video editor designed for content creators. 
 ### AI Integration
 
 - Natural language edit commands
-- Automatic scene detection foundation
+- Automatic scene detection (early stage)
 - Speech-to-text transcription (optional build feature)
 - Smart asset search (optional build feature)
 - AI-generated edit suggestions
 
 ### Plugin System
 
-- WASM-based plugin runtime foundation
+- WASM-based plugin runtime
 - Provider interfaces for assets, presets, and templates
-- Backend integration groundwork for future plugin UX
+- Backend integration in place; plugin UX is planned
 
 ### Quality Control
 
-- QC framework with built-in rule scaffolding
-- Black frame, audio peak, and caption checks are currently heuristic/early-stage
-- Auto-fix suggestion plumbing for future hardening
+- QC framework with built-in rules
+- Black frame, audio peak, and caption checks (currently heuristic, early stage)
+- Auto-fix suggestions planned as the checks mature
 
 ### Performance
 
@@ -81,35 +77,11 @@ OpenReelio is an AI-powered desktop video editor designed for content creators. 
 
 ## Installation
 
-### Prerequisites for Source Builds
-
-- [Rust](https://rustup.rs/) 1.88+
-- [Node.js](https://nodejs.org/) 20+
-- [FFmpeg](https://ffmpeg.org/) 6+ or bundled FFmpeg binaries in `src-tauri/binaries`
-- (Optional) LLVM/Clang for Whisper: building with `--features whisper` requires `libclang` (bindgen). On Windows, install LLVM and set `LIBCLANG_PATH` to the folder containing `libclang.dll`.
-
-### From Source
-
-```bash
-# Clone the repository
-git clone https://github.com/openreelio/openreelio.git
-cd openreelio
-
-# Install dependencies
-npm install
-
-# Run in development mode
-npm run tauri dev
-
-# Build for production
-npm run tauri build
-```
-
-### Pre-built Binaries
+### Pre-built Binaries (Recommended)
 
 Download the latest release from the [Releases](https://github.com/openreelio/openreelio/releases) page.
-Pre-built installers include OpenReelio's required runtime tools, including FFmpeg/FFprobe and the OpenReelio CLI used for local MCP integration.
-Automatic updates use the signed `latest.json` manifest from GitHub Releases. Windows/macOS OS code signing is optional and may show first-run warnings until paid certificates are configured.
+Installers bundle everything OpenReelio needs at runtime, including FFmpeg/FFprobe and the OpenReelio CLI used for local MCP integration.
+Automatic updates are delivered through the signed `latest.json` manifest on GitHub Releases. OS code signing is not yet configured, so Windows and macOS may show a first-run warning (see below).
 
 #### Windows
 
@@ -132,6 +104,30 @@ Automatic updates use the signed `latest.json` manifest from GitHub Releases. Wi
 1. Download `OpenReelio-x.x.x-linux-x64.AppImage`
 2. Make executable: `chmod +x OpenReelio-*.AppImage`
 3. Run: `./OpenReelio-*.AppImage`
+
+### From Source
+
+Prerequisites:
+
+- [Rust](https://rustup.rs/) 1.88+
+- [Node.js](https://nodejs.org/) 20+
+- [FFmpeg](https://ffmpeg.org/) 6+ or bundled FFmpeg binaries in `src-tauri/binaries`
+- (Optional) LLVM/Clang for Whisper: building with `--features whisper` requires `libclang` (bindgen). On Windows, install LLVM and set `LIBCLANG_PATH` to the folder containing `libclang.dll`.
+
+```bash
+# Clone the repository
+git clone https://github.com/openreelio/openreelio.git
+cd openreelio
+
+# Install dependencies
+npm install
+
+# Run in development mode
+npm run tauri dev
+
+# Build for production
+npm run tauri build
+```
 
 ## Documentation
 
