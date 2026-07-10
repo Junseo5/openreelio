@@ -79,16 +79,19 @@ describe('ModalShell', () => {
     const previousOverflow = document.body.style.overflow;
     document.body.style.overflow = 'auto';
 
-    const { unmount } = render(
-      <ModalShell ariaLabel="Scroll lock example">
-        <button type="button">Action</button>
-      </ModalShell>,
-    );
+    try {
+      const { unmount } = render(
+        <ModalShell ariaLabel="Scroll lock example">
+          <button type="button">Action</button>
+        </ModalShell>,
+      );
 
-    expect(document.body.style.overflow).toBe('hidden');
+      expect(document.body.style.overflow).toBe('hidden');
 
-    unmount();
-    expect(document.body.style.overflow).toBe('auto');
-    document.body.style.overflow = previousOverflow;
+      unmount();
+      expect(document.body.style.overflow).toBe('auto');
+    } finally {
+      document.body.style.overflow = previousOverflow;
+    }
   });
 });

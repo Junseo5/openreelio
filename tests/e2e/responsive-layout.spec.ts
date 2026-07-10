@@ -402,6 +402,8 @@ test('should hide developer diagnostics when the production settings UI opens', 
 
   await expect(page.getByRole('button', { name: 'Developer', exact: true })).toHaveCount(0);
   await expect(page.getByText('Agent Execution Traces', { exact: true })).toHaveCount(0);
+
+  await page.getByRole('button', { name: 'AI', exact: true }).click();
   await expect(page.getByText('CODEX_HOME:', { exact: false })).toHaveCount(0);
   await expect(page.getByText('Raw data', { exact: true })).toHaveCount(0);
 });

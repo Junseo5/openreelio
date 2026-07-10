@@ -67,44 +67,49 @@ describe('getViewportAwareMenuPosition', () => {
     Object.defineProperty(window, 'innerHeight', { configurable: true, value: 800 });
     globalThis.ResizeObserver = TestResizeObserver as unknown as typeof ResizeObserver;
 
-    let menuWidth = 100;
-    let menuHeight = 100;
-    const menu = document.createElement('div');
-    vi.spyOn(menu, 'getBoundingClientRect').mockImplementation(
-      () =>
-        ({
-          x: 0,
-          y: 0,
-          top: 0,
-          left: 0,
-          right: menuWidth,
-          bottom: menuHeight,
-          width: menuWidth,
-          height: menuHeight,
-          toJSON: () => ({}),
-        }) as DOMRect,
-    );
+    try {
+      let menuWidth = 100;
+      let menuHeight = 100;
+      const menu = document.createElement('div');
+      vi.spyOn(menu, 'getBoundingClientRect').mockImplementation(
+        () =>
+          ({
+            x: 0,
+            y: 0,
+            top: 0,
+            left: 0,
+            right: menuWidth,
+            bottom: menuHeight,
+            width: menuWidth,
+            height: menuHeight,
+            toJSON: () => ({}),
+          }) as DOMRect,
+      );
 
-    const menuRef = { current: menu };
-    const { result, unmount } = renderHook(() => useViewportAwareMenuPosition(950, 750, menuRef));
+      const menuRef = { current: menu };
+      const { result, unmount } = renderHook(() => useViewportAwareMenuPosition(950, 750, menuRef));
 
-    expect(observe).toHaveBeenCalledWith(menu);
-    expect(result.current).toEqual({ left: 850, top: 650 });
+      expect(observe).toHaveBeenCalledWith(menu);
+      expect(result.current).toEqual({ left: 850, top: 650 });
 
-    menuWidth = 300;
-    menuHeight = 500;
-    act(() => resizeCallback?.([], {} as ResizeObserver));
+      menuWidth = 300;
+      menuHeight = 500;
+      act(() => resizeCallback?.([], {} as ResizeObserver));
 
-    expect(result.current).toEqual({ left: 650, top: 250 });
+      expect(result.current).toEqual({ left: 650, top: 250 });
 
-    unmount();
-    expect(disconnect).toHaveBeenCalledTimes(1);
-
-    globalThis.ResizeObserver = originalResizeObserver;
-    Object.defineProperty(window, 'innerWidth', { configurable: true, value: originalInnerWidth });
-    Object.defineProperty(window, 'innerHeight', {
-      configurable: true,
-      value: originalInnerHeight,
-    });
+      unmount();
+      expect(disconnect).toHaveBeenCalledTimes(1);
+    } finally {
+      globalThis.ResizeObserver = originalResizeObserver;
+      Object.defineProperty(window, 'innerWidth', {
+        configurable: true,
+        value: originalInnerWidth,
+      });
+      Object.defineProperty(window, 'innerHeight', {
+        configurable: true,
+        value: originalInnerHeight,
+      });
+    }
   });
 });
