@@ -8,6 +8,7 @@ import {
   getClipTimelineDurationSec,
   normalizeClipFadeDurations,
 } from '@/utils/clipAudio';
+import { useViewportAwareMenuPosition } from '@/hooks/useViewportAwareMenuPosition';
 import { TRACK_HEIGHT } from './constants';
 
 export interface ClipAudioSettingsPatch {
@@ -120,6 +121,7 @@ export function AudioClipControls({
   const clipDurationSec = useMemo(() => getClipTimelineDurationSec(clip), [clip]);
   const initialAudioSettings = useMemo(() => getInitialAudioSettings(clip), [clip]);
   const containerRef = useRef<HTMLDivElement>(null);
+  const fadeMenuRef = useRef<HTMLDivElement>(null);
 
   const [activeDrag, setActiveDrag] = useState<AudioDragType | null>(null);
   const [draftAudioSettings, setDraftAudioSettings] =
@@ -132,6 +134,11 @@ export function AudioClipControls({
     y: number;
     direction: 'in' | 'out';
   } | null>(null);
+  const {
+    left: fadeMenuLeft,
+    top: fadeMenuTop,
+    maxHeight: fadeMenuMaxHeight,
+  } = useViewportAwareMenuPosition(fadeTypeMenu?.x ?? 0, fadeTypeMenu?.y ?? 0, fadeMenuRef);
 
   useEffect(() => {
     draftAudioRef.current = draftAudioSettings;
@@ -400,9 +407,11 @@ export function AudioClipControls({
 
       {fadeTypeMenu && (
         <div
+          ref={fadeMenuRef}
           data-testid="fade-type-menu"
-          className="fixed z-50 rounded bg-gray-800 border border-gray-600 shadow-lg py-1 text-xs text-white min-w-[140px] pointer-events-auto"
-          style={{ left: fadeTypeMenu.x, top: fadeTypeMenu.y }}
+          role="menu"
+          className="pointer-events-auto fixed z-[100] min-w-[140px] max-w-[calc(100vw-1rem)] overflow-y-auto rounded border border-gray-600 bg-gray-800 py-1 text-xs text-white shadow-lg"
+          style={{ left: fadeMenuLeft, top: fadeMenuTop, maxHeight: fadeMenuMaxHeight }}
         >
           <div className="px-3 py-0.5 text-gray-400">
             {fadeTypeMenu.direction === 'in' ? 'Fade In Type' : 'Fade Out Type'}

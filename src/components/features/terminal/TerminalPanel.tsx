@@ -1,8 +1,9 @@
-import { useEffect, useMemo, useState, type CSSProperties } from 'react';
+import { useMemo, useState, type CSSProperties } from 'react';
 import { Plus, X } from 'lucide-react';
 import { useUIStore } from '@/stores';
 import { useTerminalStore } from '@/stores/terminalStore';
 import { isDesktopRuntimeAvailable } from '@/services/runtimeEnvironment';
+import { ContextMenu } from '@/components/ui/ContextMenu';
 import { TerminalViewport } from './TerminalViewport';
 
 interface ContextMenuState {
@@ -36,26 +37,6 @@ export function TerminalPanel(): JSX.Element {
   const openSettings = useUIStore((state) => state.openSettings);
   const isDesktopRuntime = isDesktopRuntimeAvailable();
   const [contextMenu, setContextMenu] = useState<ContextMenuState | null>(null);
-
-  useEffect(() => {
-    if (!contextMenu) {
-      return;
-    }
-
-    const handlePointerDown = () => setContextMenu(null);
-    const handleEscape = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') {
-        setContextMenu(null);
-      }
-    };
-
-    window.addEventListener('pointerdown', handlePointerDown);
-    window.addEventListener('keydown', handleEscape);
-    return () => {
-      window.removeEventListener('pointerdown', handlePointerDown);
-      window.removeEventListener('keydown', handleEscape);
-    };
-  }, [contextMenu]);
 
   const visibleSessions = useMemo(
     () => visibleSessionIds.map((sessionId) => sessions[sessionId]).filter(Boolean),
@@ -176,32 +157,22 @@ export function TerminalPanel(): JSX.Element {
       )}
 
       {contextMenu && (
-        <div
-          className="fixed z-[70] min-w-[140px] border border-[#454545] bg-[#252526] py-1 text-xs text-[#cccccc] shadow-2xl"
-          style={{ left: contextMenu.x, top: contextMenu.y }}
-          onPointerDown={(event) => event.stopPropagation()}
-        >
-          <button
-            type="button"
-            onClick={() => {
-              void splitGroup(contextMenu.groupId);
-              setContextMenu(null);
-            }}
-            className="flex w-full items-center px-3 py-1.5 text-left hover:bg-[#04395e]"
-          >
-            Split
-          </button>
-          <button
-            type="button"
-            onClick={() => {
-              void closeGroup(contextMenu.groupId);
-              setContextMenu(null);
-            }}
-            className="flex w-full items-center px-3 py-1.5 text-left hover:bg-[#04395e]"
-          >
-            Close
-          </button>
-        </div>
+        <ContextMenu
+          x={contextMenu.x}
+          y={contextMenu.y}
+          onClose={() => setContextMenu(null)}
+          items={[
+            {
+              label: 'Split terminal',
+              onClick: () => void splitGroup(contextMenu.groupId),
+            },
+            {
+              label: 'Close terminal',
+              onClick: () => void closeGroup(contextMenu.groupId),
+              danger: true,
+            },
+          ]}
+        />
       )}
     </div>
   );

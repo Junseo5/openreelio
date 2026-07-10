@@ -19,6 +19,7 @@ import {
   interpolateKeyframes,
   type AudioKeyframeActions,
 } from '@/hooks/useAudioKeyframes';
+import { useViewportAwareMenuPosition } from '@/hooks/useViewportAwareMenuPosition';
 import { TRACK_HEIGHT } from './constants';
 
 // =============================================================================
@@ -307,12 +308,16 @@ function KeyframeContextMenu({
   onSetInterpolation,
 }: KeyframeContextMenuProps): JSX.Element {
   const interpLabel = typeof currentInterpolation === 'string' ? currentInterpolation : 'bezier';
+  const menuRef = useRef<HTMLDivElement>(null);
+  const { left, top, maxHeight } = useViewportAwareMenuPosition(x, y, menuRef);
 
   return (
     <div
+      ref={menuRef}
       data-testid="keyframe-context-menu"
-      className="fixed z-50 rounded bg-gray-800 border border-gray-600 shadow-lg py-1 text-xs text-white min-w-[140px] pointer-events-auto"
-      style={{ left: x, top: y }}
+      role="menu"
+      className="pointer-events-auto fixed z-[100] min-w-[140px] max-w-[calc(100vw-1rem)] overflow-y-auto rounded border border-gray-600 bg-gray-800 py-1 text-xs text-white shadow-lg"
+      style={{ left, top, maxHeight }}
     >
       <button
         type="button"

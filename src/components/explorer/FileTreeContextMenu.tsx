@@ -19,6 +19,7 @@ import {
   Loader2,
 } from 'lucide-react';
 import type { FileTreeEntry } from '@/types';
+import { useViewportAwareMenuPosition } from '@/hooks/useViewportAwareMenuPosition';
 
 export interface FileTreeContextMenuProps {
   entry: FileTreeEntry;
@@ -54,6 +55,7 @@ export function FileTreeContextMenu({
   isTranscribing = false,
 }: FileTreeContextMenuProps) {
   const menuRef = useRef<HTMLDivElement>(null);
+  const { left, top, maxHeight } = useViewportAwareMenuPosition(position.x, position.y, menuRef);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -144,19 +146,12 @@ export function FileTreeContextMenu({
       ? 'Open Folder in File Explorer'
       : 'Reveal in File Explorer';
 
-  // Ensure menu stays within viewport
-  const style: React.CSSProperties = {
-    position: 'fixed',
-    left: position.x,
-    top: position.y,
-    zIndex: 50,
-  };
-
   return (
     <div
       ref={menuRef}
-      className="min-w-[180px] py-1 bg-surface-highest border border-editor-border rounded-md shadow-lg"
-      style={style}
+      role="menu"
+      className="fixed z-[100] min-w-[180px] max-w-[calc(100vw-1rem)] overflow-y-auto rounded-md border border-editor-border bg-surface-highest py-1 shadow-lg"
+      style={{ left, top, maxHeight }}
     >
       {/* Add to Timeline (media files only) */}
       {!entry.isDirectory && entry.assetId && (
