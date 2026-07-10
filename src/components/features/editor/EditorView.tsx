@@ -2155,7 +2155,8 @@ export function EditorView({ sequence, appVersion = '0.1.0' }: EditorViewProps):
 
   const handleCloseAddText = useCallback(() => {
     setShowAddTextDialog(false);
-  }, []);
+    setActiveTool('select');
+  }, [setActiveTool]);
 
   const handleAddTextClip = useCallback(
     async (payload: AddTextPayload) => {
