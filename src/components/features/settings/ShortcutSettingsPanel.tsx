@@ -439,6 +439,16 @@ export const ShortcutSettingsPanel = memo(function ShortcutSettingsPanel({
 
   // Refs
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const conflictClearTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const clearConflictTimeout = useCallback(() => {
+    if (conflictClearTimeoutRef.current !== null) {
+      clearTimeout(conflictClearTimeoutRef.current);
+      conflictClearTimeoutRef.current = null;
+    }
+  }, []);
+
+  useEffect(() => clearConflictTimeout, [clearConflictTimeout]);
 
   // Clear messages after timeout
   useEffect(() => {
@@ -510,18 +520,25 @@ export const ShortcutSettingsPanel = memo(function ShortcutSettingsPanel({
   }, [filteredGroups]);
 
   // Handlers
-  const handleStartEdit = useCallback((id: string) => {
-    setEditingId(id);
-    setPendingConflict(null);
-  }, []);
+  const handleStartEdit = useCallback(
+    (id: string) => {
+      clearConflictTimeout();
+      setEditingId(id);
+      setPendingConflict(null);
+    },
+    [clearConflictTimeout],
+  );
 
   const handleCancelEdit = useCallback(() => {
+    clearConflictTimeout();
     setEditingId(null);
     setPendingConflict(null);
-  }, []);
+  }, [clearConflictTimeout]);
 
   const handleShortcutCaptured = useCallback(
     (id: string, key: string, modifiers: ModifierKey[]) => {
+      clearConflictTimeout();
+
       // Check for conflicts
       const conflict = checkConflict(id, key, modifiers);
 
@@ -531,12 +548,11 @@ export const ShortcutSettingsPanel = memo(function ShortcutSettingsPanel({
         // Apply the binding anyway (allowConflict=true)
         updateBinding(id, { key, modifiers }, true);
         // Clear editing state after a delay to show conflict
-        const timeoutId = setTimeout(() => {
-          setEditingId(null);
+        conflictClearTimeoutRef.current = setTimeout(() => {
+          setEditingId((currentId) => (currentId === id ? null : currentId));
           setPendingConflict(null);
+          conflictClearTimeoutRef.current = null;
         }, 1500);
-        // Cleanup timeout on unmount handled by returning cleanup fn
-        return () => clearTimeout(timeoutId);
       } else {
         // No conflict, apply immediately
         updateBinding(id, { key, modifiers });
@@ -544,7 +560,7 @@ export const ShortcutSettingsPanel = memo(function ShortcutSettingsPanel({
         setPendingConflict(null);
       }
     },
-    [checkConflict, updateBinding],
+    [checkConflict, clearConflictTimeout, updateBinding],
   );
 
   const handleResetBinding = useCallback(
@@ -562,10 +578,14 @@ export const ShortcutSettingsPanel = memo(function ShortcutSettingsPanel({
 
   const handlePresetSelect = useCallback(
     (presetId: string) => {
+      const preset = SHORTCUT_PRESETS.find((candidate) => candidate.id === presetId);
+      if (!preset) {
+        setImportError('Preset could not be applied');
+        return;
+      }
+
       applyPreset(presetId);
-      setSuccessMessage(
-        `Applied "${SHORTCUT_PRESETS.find((p) => p.id === presetId)?.name}" preset`,
-      );
+      setSuccessMessage(`Applied "${preset.name}" preset`);
     },
     [applyPreset],
   );
