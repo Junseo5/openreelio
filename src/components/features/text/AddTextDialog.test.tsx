@@ -302,7 +302,8 @@ describe('AddTextDialog', () => {
       });
 
       expect(onClose).not.toHaveBeenCalled();
-      expect(screen.getByText('Validation error')).toBeInTheDocument();
+      expect(screen.getByText('Could not complete the operation.')).toBeInTheDocument();
+      expect(screen.queryByText('Validation error')).not.toBeInTheDocument();
     });
   });
 
