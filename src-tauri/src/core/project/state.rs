@@ -15,7 +15,10 @@ use crate::core::{
     effects::Effect,
     masks::MaskGroup,
     project::{OpKind, Operation, OpsLog},
-    timeline::{AudioSettings, BlendMode, Clip, Marker, Sequence, SequenceHdrSettings, Track},
+    timeline::{
+        AudioSettings, BlendMode, Clip, Marker, Sequence, SequenceHdrSettings, Track,
+        TransformKeyframe,
+    },
     AssetId, CoreError, CoreResult, EffectId, SequenceId,
 };
 
@@ -1253,6 +1256,23 @@ impl ProjectState {
                         None
                     };
 
+                let parsed_motion_keyframes: Option<Vec<TransformKeyframe>> =
+                    if let Some(keyframes_value) = op.payload.get("motionKeyframes") {
+                        if keyframes_value.is_null() {
+                            None
+                        } else {
+                            Some(
+                                serde_json::from_value(keyframes_value.clone()).map_err(|e| {
+                                    CoreError::InvalidCommand(format!(
+                                        "Invalid motionKeyframes payload: {e}"
+                                    ))
+                                })?,
+                            )
+                        }
+                    } else {
+                        None
+                    };
+
                 // ── Phase 2: Apply all mutations (validation already passed) ──
 
                 let has_full_audio_payload = parsed_audio.is_some();
@@ -1305,6 +1325,9 @@ impl ProjectState {
                     // Transform was pre-validated before any mutation.
                     if let Some(transform) = parsed_transform {
                         clip.transform = transform;
+                    }
+                    if let Some(motion_keyframes) = parsed_motion_keyframes {
+                        clip.motion_keyframes = motion_keyframes;
                     }
                     return Ok(());
                 }
@@ -1372,6 +1395,9 @@ impl ProjectState {
                             })?;
                         clip.transform = transform;
                     }
+                }
+                if let Some(motion_keyframes) = parsed_motion_keyframes {
+                    clip.motion_keyframes = motion_keyframes;
                 }
                 return Ok(());
             }
@@ -2328,7 +2354,9 @@ mod tests {
     use super::*;
     use crate::core::{
         assets::{Asset, VideoInfo},
-        timeline::{Clip, Sequence, SequenceFormat, Track, TrackKind},
+        timeline::{
+            Clip, KeyframeInterpolation, Sequence, SequenceFormat, Track, TrackKind, Transform,
+        },
     };
     use tempfile::TempDir;
 
@@ -3740,6 +3768,141 @@ mod tests {
             .get_clip(&clip_id)
             .unwrap();
         assert_eq!(updated_clip.blend_mode, BlendMode::Screen);
+    }
+
+    #[test]
+    fn test_clip_update_motion_keyframes_replays_canonical_payload() {
+        let mut state = ProjectState::new("Test Project");
+        let seq_id = state.active_sequence_id.clone().unwrap();
+        let video_track = state
+            .sequences
+            .get_mut(&seq_id)
+            .unwrap()
+            .tracks
+            .get_mut(0)
+            .unwrap();
+
+        let clip = Clip::new("asset_video")
+            .with_source_range(0.0, 5.0)
+            .place_at(0.0);
+        let clip_id = clip.id.clone();
+        video_track.add_clip(clip);
+
+        let mut end_transform = Transform::default();
+        end_transform.scale.x = 1.25;
+        end_transform.scale.y = 1.25;
+        let keyframes = vec![
+            TransformKeyframe {
+                time_offset: 0.0,
+                transform: Transform::default(),
+                interpolation: KeyframeInterpolation::Linear,
+            },
+            TransformKeyframe {
+                time_offset: 4.0,
+                transform: end_transform,
+                interpolation: KeyframeInterpolation::Linear,
+            },
+        ];
+
+        state
+            .apply_operation(&Operation::new(
+                OpKind::ClipUpdate,
+                serde_json::json!({
+                    "sequenceId": seq_id,
+                    "clipId": clip_id,
+                    "motionKeyframes": keyframes,
+                }),
+            ))
+            .unwrap();
+
+        let updated_clip = state.sequences[&seq_id].tracks[0]
+            .get_clip(&clip_id)
+            .unwrap();
+        assert_eq!(updated_clip.motion_keyframes, keyframes);
+    }
+
+    #[test]
+    fn test_clip_update_invalid_motion_keyframes_is_atomic() {
+        let mut state = ProjectState::new("Test Project");
+        let seq_id = state.active_sequence_id.clone().unwrap();
+        let video_track = state
+            .sequences
+            .get_mut(&seq_id)
+            .unwrap()
+            .tracks
+            .get_mut(0)
+            .unwrap();
+
+        let mut clip = Clip::new("asset_video")
+            .with_source_range(0.0, 5.0)
+            .place_at(0.0);
+        clip.motion_keyframes = vec![TransformKeyframe {
+            time_offset: 1.0,
+            transform: Transform::default(),
+            interpolation: KeyframeInterpolation::Hold,
+        }];
+        let original_keyframes = clip.motion_keyframes.clone();
+        let clip_id = clip.id.clone();
+        video_track.add_clip(clip);
+
+        let result = state.apply_operation(&Operation::new(
+            OpKind::ClipUpdate,
+            serde_json::json!({
+                "sequenceId": seq_id,
+                "clipId": clip_id,
+                "blendMode": "screen",
+                "motionKeyframes": { "not": "an array" },
+            }),
+        ));
+
+        assert!(matches!(result, Err(CoreError::InvalidCommand(_))));
+        let unchanged_clip = state.sequences[&seq_id].tracks[0]
+            .get_clip(&clip_id)
+            .unwrap();
+        assert_eq!(unchanged_clip.blend_mode, BlendMode::Normal);
+        assert_eq!(unchanged_clip.motion_keyframes, original_keyframes);
+    }
+
+    #[test]
+    fn test_clip_update_motion_keyframes_applies_with_full_audio_payload() {
+        let mut state = ProjectState::new("Test Project");
+        let seq_id = state.active_sequence_id.clone().unwrap();
+        let video_track = state
+            .sequences
+            .get_mut(&seq_id)
+            .unwrap()
+            .tracks
+            .get_mut(0)
+            .unwrap();
+
+        let clip = Clip::new("asset_video")
+            .with_source_range(0.0, 5.0)
+            .place_at(0.0);
+        let clip_id = clip.id.clone();
+        video_track.add_clip(clip);
+
+        let keyframes = vec![TransformKeyframe {
+            time_offset: 0.0,
+            transform: Transform::default(),
+            interpolation: KeyframeInterpolation::Linear,
+        }];
+
+        state
+            .apply_operation(&Operation::new(
+                OpKind::ClipUpdate,
+                serde_json::json!({
+                    "sequenceId": seq_id,
+                    "clipId": clip_id,
+                    "audio": AudioSettings::default(),
+                    "motionKeyframes": keyframes,
+                }),
+            ))
+            .unwrap();
+
+        let updated_clip = state.sequences[&seq_id].tracks[0]
+            .get_clip(&clip_id)
+            .unwrap();
+        assert_eq!(updated_clip.motion_keyframes, keyframes);
     }
 
     #[test]
