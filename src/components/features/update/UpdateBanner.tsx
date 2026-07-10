@@ -6,7 +6,8 @@
  */
 
 import { Download, RefreshCw, X, AlertCircle, CheckCircle } from 'lucide-react';
-import { useUpdate } from '@/hooks/useUpdate';
+import { useUpdate, type UseUpdateReturn } from '@/hooks/useUpdate';
+import { getUserFriendlyError } from '@/utils/errorMessages';
 
 export interface UpdateBannerProps {
   /** Additional CSS classes */
@@ -15,10 +16,12 @@ export interface UpdateBannerProps {
   checkOnMount?: boolean;
 }
 
-export function UpdateBanner({
-  className = '',
-  checkOnMount = true,
-}: UpdateBannerProps) {
+interface UpdateBannerContentProps {
+  update: UseUpdateReturn;
+  className?: string;
+}
+
+export function UpdateBannerContent({ update, className = '' }: UpdateBannerContentProps) {
   const {
     updateInfo,
     isChecking,
@@ -30,7 +33,7 @@ export function UpdateBanner({
     relaunch,
     clearError,
     checkForUpdates,
-  } = useUpdate({ checkOnMount });
+  } = update;
 
   // Don't render anything if no update info and not checking/error
   if (!isChecking && !error && !updateAvailable && !needsRestart) {
@@ -42,7 +45,7 @@ export function UpdateBanner({
     return (
       <div className={`bg-editor-sidebar border-b border-editor-border px-4 py-2 ${className}`}>
         <div className="flex items-center gap-3 text-sm text-editor-text-muted">
-          <RefreshCw className="w-4 h-4 animate-spin" />
+          <RefreshCw className="h-4 w-4 shrink-0 animate-spin" />
           <span>Checking for updates...</span>
         </div>
       </div>
@@ -51,14 +54,18 @@ export function UpdateBanner({
 
   // Error state
   if (error) {
+    const visibleError = getUserFriendlyError(error, { includeTechnicalDetails: false });
+
     return (
       <div className={`bg-red-500/10 border-b border-red-500/20 px-4 py-2 ${className}`}>
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3 text-sm text-red-400">
-            <AlertCircle className="w-4 h-4" />
-            <span>Failed to check for updates: {error}</span>
+        <div className="flex flex-wrap items-center gap-2 sm:flex-nowrap sm:justify-between">
+          <div className="flex min-w-0 flex-1 items-start gap-3 text-sm text-red-400">
+            <AlertCircle className="h-4 w-4 shrink-0" />
+            <span className="break-words [overflow-wrap:anywhere]">
+              Failed to check for updates. {visibleError}
+            </span>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="ml-auto flex shrink-0 items-center gap-2">
             <button
               onClick={() => void checkForUpdates()}
               className="px-2 py-1 text-xs text-red-400 hover:text-red-300 transition-colors"
@@ -82,14 +89,14 @@ export function UpdateBanner({
   if (needsRestart) {
     return (
       <div className={`bg-green-500/10 border-b border-green-500/20 px-4 py-2 ${className}`}>
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3 text-sm text-green-400">
-            <CheckCircle className="w-4 h-4" />
+        <div className="flex flex-wrap items-center gap-3 sm:justify-between">
+          <div className="flex min-w-0 flex-1 items-center gap-3 text-sm text-green-400">
+            <CheckCircle className="h-4 w-4 shrink-0" />
             <span>Update installed successfully. Restart to complete.</span>
           </div>
           <button
             onClick={() => void relaunch()}
-            className="px-3 py-1 text-sm bg-green-600 hover:bg-green-700 text-white rounded transition-colors"
+            className="ml-auto shrink-0 rounded bg-green-600 px-3 py-1 text-sm text-white transition-colors hover:bg-green-700"
           >
             Restart Now
           </button>
@@ -103,7 +110,7 @@ export function UpdateBanner({
     return (
       <div className={`bg-primary-500/10 border-b border-primary-500/20 px-4 py-2 ${className}`}>
         <div className="flex items-center gap-3 text-sm text-primary-400">
-          <RefreshCw className="w-4 h-4 animate-spin" />
+          <RefreshCw className="h-4 w-4 shrink-0 animate-spin" />
           <span>Downloading and installing update...</span>
         </div>
       </div>
@@ -114,15 +121,15 @@ export function UpdateBanner({
   if (updateAvailable && updateInfo) {
     return (
       <div className={`bg-primary-500/10 border-b border-primary-500/20 px-4 py-2 ${className}`}>
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3 text-sm text-primary-400">
-            <Download className="w-4 h-4" />
-            <span>
+        <div className="flex flex-wrap items-center gap-3 sm:justify-between">
+          <div className="flex min-w-0 flex-1 items-center gap-3 text-sm text-primary-400">
+            <Download className="h-4 w-4 shrink-0" />
+            <span className="break-words">
               Version {updateInfo.latestVersion} is available
               {updateInfo.currentVersion && ` (current: ${updateInfo.currentVersion})`}
             </span>
           </div>
-          <div className="flex items-center gap-3">
+          <div className="ml-auto flex shrink-0 items-center gap-3">
             <button
               onClick={() => void installUpdate()}
               className="px-3 py-1 text-sm bg-primary-600 hover:bg-primary-700 text-white rounded transition-colors"
@@ -136,6 +143,11 @@ export function UpdateBanner({
   }
 
   return null;
+}
+
+export function UpdateBanner({ className = '', checkOnMount = true }: UpdateBannerProps) {
+  const update = useUpdate({ checkOnMount });
+  return <UpdateBannerContent update={update} className={className} />;
 }
 
 export default UpdateBanner;

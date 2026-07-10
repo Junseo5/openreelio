@@ -57,13 +57,13 @@ function formatTime(timeSec: number): string {
   return `${minutes}:${String(seconds).padStart(2, '0')}.${String(frame).padStart(2, '0')}`;
 }
 
-function getClipLabel(clip: Clip, assetName?: string): string {
+function getClipLabel(clip: Clip, assetName?: string, isMissingAsset = false): string {
   if (clip.label?.trim()) return clip.label.trim();
   if (assetName?.trim()) return assetName.trim();
   if (isTextClip(clip.assetId)) {
     return createTextClipData(clip.assetId)?.content || 'Text Clip';
   }
-  return clip.assetId;
+  return isMissingAsset ? 'Media unavailable' : 'Media clip';
 }
 
 function getEffectLabel(effectType: unknown): string {
@@ -95,12 +95,14 @@ function buildTimelineIndexItems(
   for (const track of sequence.tracks) {
     for (const clip of track.clips) {
       const asset = assets.get(clip.assetId);
+      const isMissingAsset = track.kind !== 'caption' && !isTextClip(clip.assetId) && !asset;
       const label =
-        track.kind === 'caption' ? clip.label || 'Caption' : getClipLabel(clip, asset?.name);
+        track.kind === 'caption'
+          ? clip.label || 'Caption'
+          : getClipLabel(clip, asset?.name, isMissingAsset);
       const timeSec = clip.place.timelineInSec;
       const duration = Math.max(0, getClipTimelineEndSec(clip) - timeSec);
       const baseDetail = `${track.name} | ${formatTime(duration)}`;
-      const isMissingAsset = track.kind !== 'caption' && !isTextClip(clip.assetId) && !asset;
 
       items.push({
         id: `clip:${track.id}:${clip.id}`,
@@ -129,7 +131,7 @@ function buildTimelineIndexItems(
           id: `missing:${track.id}:${clip.id}`,
           kind: 'missing',
           label,
-          detail: `${baseDetail} | ${clip.assetId}`,
+          detail: `${baseDetail} | Source unavailable`,
           timeSec,
           clipId: clip.id,
           trackId: track.id,

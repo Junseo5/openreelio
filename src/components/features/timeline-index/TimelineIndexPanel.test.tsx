@@ -120,12 +120,7 @@ function createSequence(): Sequence {
 describe('TimelineIndexPanel', () => {
   beforeEach(() => {
     useProjectStore.setState({
-      assets: new Map([
-        [
-          'asset-1',
-          createAsset(),
-        ],
-      ]),
+      assets: new Map([['asset-1', createAsset()]]),
       effects: new Map([
         [
           'effect-1',
@@ -151,6 +146,9 @@ describe('TimelineIndexPanel', () => {
     expect(screen.getByText('Brightness')).toBeInTheDocument();
     expect(screen.getAllByText('Missing')).toHaveLength(1);
     expect(screen.getAllByText('Disabled')).toHaveLength(1);
+    expect(screen.getAllByText('Media unavailable').length).toBeGreaterThan(0);
+    expect(screen.getByText(/Source unavailable/)).toBeInTheDocument();
+    expect(screen.queryByText(/missing-asset/)).not.toBeInTheDocument();
   });
 
   it('filters by query', () => {

@@ -284,7 +284,12 @@ export function normalizeError(error: unknown): Error {
  * @param error - The error message or Error object
  * @returns User-friendly error message
  */
-export function getUserFriendlyError(error: unknown): string {
+export interface UserFacingErrorOptions {
+  /** Include backend details for local diagnostics. Never enable this in production UI. */
+  includeTechnicalDetails?: boolean;
+}
+
+export function getUserFriendlyError(error: unknown, options: UserFacingErrorOptions = {}): string {
   const errorStr = extractErrorMessage(error);
 
   // Try to match against known patterns
@@ -295,9 +300,10 @@ export function getUserFriendlyError(error: unknown): string {
     }
   }
 
-  // If no pattern matches, provide an actionable message and include details.
-  // Even in dev, avoid "Failed" with no clue; show the raw detail as a last resort.
-  const details = errorStr ? ` Details: ${errorStr}` : '';
+  // Unknown backend details can contain paths, IDs, provider payloads, or other
+  // diagnostics that should not appear in the production interface.
+  const includeTechnicalDetails = options.includeTechnicalDetails ?? import.meta.env.DEV;
+  const details = includeTechnicalDetails && errorStr ? ` Details: ${errorStr}` : '';
   return `Could not complete the operation.${details}`;
 }
 
@@ -337,7 +343,7 @@ export function getErrorSeverity(error: unknown): 'error' | 'warning' {
  */
 export function createErrorHandler(
   showError: (message: string) => void,
-  showWarning: (message: string) => void
+  showWarning: (message: string) => void,
 ): (error: unknown) => void {
   return (error: unknown) => {
     const message = getUserFriendlyError(error);

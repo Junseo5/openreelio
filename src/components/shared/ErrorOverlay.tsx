@@ -22,6 +22,7 @@ import {
   type ErrorOverlayProps,
   type ErrorSeverity,
 } from './errorOverlayModel';
+import { getUserFriendlyError } from '@/utils/errorMessages';
 
 // =============================================================================
 // Styles
@@ -88,6 +89,8 @@ const styles = {
     color: '#e74c3c',
     lineHeight: 1.5,
     fontFamily: 'monospace',
+    overflowWrap: 'anywhere' as const,
+    wordBreak: 'break-word' as const,
   },
   suggestion: {
     margin: '0 0 16px 0',
@@ -275,12 +278,14 @@ export function ErrorOverlay({
         {/* Body */}
         <div style={styles.body}>
           <p id={descId} style={styles.message}>
-            {error.message}
+            {import.meta.env.DEV
+              ? error.message
+              : getUserFriendlyError(error, { includeTechnicalDetails: false })}
           </p>
           <p style={styles.suggestion}>{suggestion}</p>
 
           {/* Error Details */}
-          {showDetails && error.stack && (
+          {showDetails && import.meta.env.DEV && error.stack && (
             <details style={styles.details}>
               <summary style={styles.summary}>Error Details</summary>
               <pre style={styles.stack}>{error.stack}</pre>
