@@ -9,6 +9,23 @@ import { ErrorPartRenderer } from './ErrorPartRenderer';
 import type { ErrorPart } from '@/agents/engine/core/conversation';
 
 describe('ErrorPartRenderer', () => {
+  it('should preserve a useful error while hiding diagnostics in production mode', () => {
+    const part: ErrorPart = {
+      type: 'error',
+      code: 'TOOL_EXECUTION_FAILED',
+      message: 'Clip not found: private-clip-id',
+      phase: 'executing',
+      recoverable: false,
+    };
+
+    render(<ErrorPartRenderer part={part} diagnosticsEnabled={false} />);
+
+    expect(screen.getByText('The clip could not be found on the timeline.')).toBeInTheDocument();
+    expect(screen.queryByText('TOOL_EXECUTION_FAILED')).not.toBeInTheDocument();
+    expect(screen.queryByText(/executing/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/private-clip-id/)).not.toBeInTheDocument();
+  });
+
   it('should render error message', () => {
     const part: ErrorPart = {
       type: 'error',

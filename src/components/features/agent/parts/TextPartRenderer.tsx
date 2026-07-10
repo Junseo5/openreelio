@@ -43,10 +43,10 @@ function renderMarkdownInline(text: string): React.ReactNode[] {
       nodes.push(
         <code
           key={key++}
-          className="px-1.5 py-0.5 rounded bg-surface-active text-text-secondary font-mono text-xs"
+          className="max-w-full whitespace-pre-wrap break-all rounded bg-surface-active px-1.5 py-0.5 font-mono text-xs text-text-secondary [overflow-wrap:anywhere]"
         >
           {codeMatch[1]}
-        </code>
+        </code>,
       );
       remaining = remaining.slice(codeMatch[0].length);
       continue;
@@ -61,12 +61,12 @@ function renderMarkdownInline(text: string): React.ReactNode[] {
         <a
           key={key++}
           href={isSafeUrl ? href : '#'}
-          className="text-primary-400 hover:underline"
+          className="max-w-full break-all text-primary-400 hover:underline [overflow-wrap:anywhere]"
           target="_blank"
           rel="noopener noreferrer"
         >
           {linkMatch[1]}
-        </a>
+        </a>,
       );
       remaining = remaining.slice(linkMatch[0].length);
       continue;
@@ -91,14 +91,19 @@ export function TextPartRenderer({ part, className = '' }: TextPartRendererProps
   const lines = part.content.split('\n');
 
   return (
-    <div className={`text-sm text-text-primary ${className}`} data-testid="text-part">
+    <div
+      className={`min-w-0 max-w-full overflow-hidden break-words text-sm text-text-primary [overflow-wrap:anywhere] ${className}`}
+      data-testid="text-part"
+    >
       {lines.map((line, i) => {
         // Unordered list items
         if (line.match(/^[-*]\s/)) {
           return (
-            <div key={i} className="flex gap-2 ml-2">
+            <div key={i} className="ml-2 flex min-w-0 max-w-full gap-2">
               <span className="text-text-tertiary">-</span>
-              <span>{renderMarkdownInline(line.slice(2))}</span>
+              <span className="min-w-0 max-w-full break-words [overflow-wrap:anywhere]">
+                {renderMarkdownInline(line.slice(2))}
+              </span>
             </div>
           );
         }
@@ -107,9 +112,11 @@ export function TextPartRenderer({ part, className = '' }: TextPartRendererProps
         const orderedMatch = line.match(/^(\d+)\.\s/);
         if (orderedMatch) {
           return (
-            <div key={i} className="flex gap-2 ml-2">
+            <div key={i} className="ml-2 flex min-w-0 max-w-full gap-2">
               <span className="text-text-tertiary">{orderedMatch[1]}.</span>
-              <span>{renderMarkdownInline(line.slice(orderedMatch[0].length))}</span>
+              <span className="min-w-0 max-w-full break-words [overflow-wrap:anywhere]">
+                {renderMarkdownInline(line.slice(orderedMatch[0].length))}
+              </span>
             </div>
           );
         }
@@ -120,7 +127,10 @@ export function TextPartRenderer({ part, className = '' }: TextPartRendererProps
         }
 
         return (
-          <p key={i} className="whitespace-pre-wrap">
+          <p
+            key={i}
+            className="max-w-full whitespace-pre-wrap break-words [overflow-wrap:anywhere]"
+          >
             {renderMarkdownInline(line)}
           </p>
         );

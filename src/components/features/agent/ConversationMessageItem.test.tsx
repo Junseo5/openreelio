@@ -106,6 +106,66 @@ describe('ConversationMessageItem', () => {
       expect(screen.getByTestId('thinking-part')).toBeInTheDocument();
     });
 
+    it('should show concise activity without diagnostics in production mode', async () => {
+      const user = userEvent.setup();
+      const message: ConversationMessage = {
+        id: 'msg-production',
+        role: 'assistant',
+        parts: [
+          {
+            type: 'thinking',
+            thought: {
+              understanding: 'Private chain of thought',
+              approach: 'Use a private tool strategy',
+              requirements: [],
+              uncertainties: [],
+              needsMoreInfo: false,
+            },
+          },
+          { type: 'reasoning', content: 'Private reasoning content' },
+          {
+            type: 'tool_call',
+            stepId: 'step-private',
+            tool: 'split_clip',
+            args: { clipId: 'private-clip-id' },
+            description: 'Operate on private-clip-id',
+            riskLevel: 'low',
+            status: 'completed',
+          },
+          {
+            type: 'tool_result',
+            stepId: 'step-private',
+            tool: 'split_clip',
+            success: true,
+            duration: 123,
+            data: { clipId: 'private-clip-id' },
+          },
+          {
+            type: 'error',
+            code: 'INTERNAL_CODE',
+            message: 'Clip not found: private-clip-id',
+            phase: 'executing',
+            recoverable: false,
+          },
+        ],
+        timestamp: Date.now(),
+      };
+
+      render(<ConversationMessageItem message={message} diagnosticsEnabled={false} />);
+
+      expect(screen.queryByTestId('thinking-part')).not.toBeInTheDocument();
+      expect(screen.queryByTestId('reasoning-part')).not.toBeInTheDocument();
+      expect(screen.getByText('The clip could not be found on the timeline.')).toBeInTheDocument();
+      expect(screen.queryByText('INTERNAL_CODE')).not.toBeInTheDocument();
+
+      await user.click(screen.getByTestId('assistant-artifact-toggle'));
+
+      expect(screen.getAllByText('Action completed')).toHaveLength(1);
+      expect(screen.queryByText('split_clip')).not.toBeInTheDocument();
+      expect(screen.queryByText('123ms')).not.toBeInTheDocument();
+      expect(screen.queryByText(/private-clip-id/)).not.toBeInTheDocument();
+    });
+
     it('should render clarification parts', () => {
       const message: ConversationMessage = {
         id: 'msg-4b',

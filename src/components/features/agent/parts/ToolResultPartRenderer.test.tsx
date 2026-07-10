@@ -9,6 +9,33 @@ import { ToolResultPartRenderer } from './ToolResultPartRenderer';
 import type { ToolResultPart } from '@/agents/engine/core/conversation';
 
 describe('ToolResultPartRenderer', () => {
+  it('should hide raw result diagnostics when diagnostics are disabled', () => {
+    const part: ToolResultPart = {
+      type: 'tool_result',
+      stepId: 'step-1',
+      tool: 'split_clip',
+      success: true,
+      duration: 150,
+      data: {
+        clipId: 'private-clip-id',
+        assetId: 'private-asset-id',
+        provider: { provider: 'private-provider', model: 'private-model' },
+        action: 'private-action',
+      },
+    };
+
+    render(<ToolResultPartRenderer part={part} diagnosticsEnabled={false} />);
+
+    expect(screen.getByText('Action completed')).toBeInTheDocument();
+    expect(screen.queryByText('split_clip')).not.toBeInTheDocument();
+    expect(screen.queryByText('150ms')).not.toBeInTheDocument();
+    expect(screen.queryByText(/private-clip-id/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/private-provider/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/private-action/)).not.toBeInTheDocument();
+    expect(screen.queryByText('Clip Evidence')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('tool-result-raw-toggle')).not.toBeInTheDocument();
+  });
+
   it('should render a successful result', () => {
     const part: ToolResultPart = {
       type: 'tool_result',

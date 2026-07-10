@@ -11,15 +11,24 @@ import type { ThinkingPart } from '@/agents/engine/core/conversation';
 interface ThinkingPartRendererProps {
   part: ThinkingPart;
   className?: string;
+  diagnosticsEnabled?: boolean;
 }
 
-export function ThinkingPartRenderer({ part, className = '' }: ThinkingPartRendererProps) {
+export function ThinkingPartRenderer({
+  part,
+  className = '',
+  diagnosticsEnabled = true,
+}: ThinkingPartRendererProps) {
   const [isExpanded, setIsExpanded] = useState(false);
   const { thought } = part;
 
+  if (!import.meta.env.DEV || !diagnosticsEnabled) {
+    return null;
+  }
+
   return (
     <div
-      className={`border border-border-subtle rounded-lg overflow-hidden ${className}`}
+      className={`min-w-0 max-w-full overflow-hidden rounded-lg border border-border-subtle ${className}`}
       data-testid="thinking-part"
     >
       <button
@@ -38,18 +47,24 @@ export function ThinkingPartRenderer({ part, className = '' }: ThinkingPartRende
         <div className="px-3 pb-3 space-y-2 border-t border-border-subtle">
           <div className="mt-2">
             <div className="text-xs font-medium text-text-tertiary mb-1">Understanding</div>
-            <p className="text-sm text-text-primary">{thought.understanding}</p>
+            <p className="max-w-full break-words text-sm text-text-primary [overflow-wrap:anywhere]">
+              {thought.understanding}
+            </p>
           </div>
 
           <div>
             <div className="text-xs font-medium text-text-tertiary mb-1">Approach</div>
-            <p className="text-sm text-text-primary">{thought.approach}</p>
+            <p className="max-w-full break-words text-sm text-text-primary [overflow-wrap:anywhere]">
+              {thought.approach}
+            </p>
           </div>
 
           {thought.needsMoreInfo && thought.clarificationQuestion && (
             <div className="p-2 rounded-md bg-yellow-500/10 border border-yellow-500/20">
               <div className="text-xs font-medium text-yellow-300 mb-1">Clarification Needed</div>
-              <p className="text-sm text-yellow-200">{thought.clarificationQuestion}</p>
+              <p className="max-w-full break-words text-sm text-yellow-200 [overflow-wrap:anywhere]">
+                {thought.clarificationQuestion}
+              </p>
             </div>
           )}
 
@@ -58,7 +73,10 @@ export function ThinkingPartRenderer({ part, className = '' }: ThinkingPartRende
               <div className="text-xs font-medium text-text-tertiary mb-1">Requirements</div>
               <ul className="space-y-0.5">
                 {thought.requirements.map((req, i) => (
-                  <li key={i} className="text-sm text-text-secondary flex gap-2">
+                  <li
+                    key={i}
+                    className="flex min-w-0 max-w-full gap-2 break-words text-sm text-text-secondary [overflow-wrap:anywhere]"
+                  >
                     <span className="text-text-tertiary">-</span>
                     {req}
                   </li>
@@ -72,7 +90,10 @@ export function ThinkingPartRenderer({ part, className = '' }: ThinkingPartRende
               <div className="text-xs font-medium text-yellow-400 mb-1">Uncertainties</div>
               <ul className="space-y-0.5">
                 {thought.uncertainties.map((unc, i) => (
-                  <li key={i} className="text-sm text-yellow-300 flex gap-2">
+                  <li
+                    key={i}
+                    className="flex min-w-0 max-w-full gap-2 break-words text-sm text-yellow-300 [overflow-wrap:anywhere]"
+                  >
                     <span>?</span>
                     {unc}
                   </li>

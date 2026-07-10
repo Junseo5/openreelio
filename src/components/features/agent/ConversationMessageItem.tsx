@@ -37,6 +37,7 @@ interface ConversationMessageItemProps {
   onToolAllow?: () => void;
   onToolAllowAlways?: () => void;
   onToolDeny?: () => void;
+  diagnosticsEnabled?: boolean;
   className?: string;
 }
 
@@ -51,6 +52,7 @@ interface PartCallbacks {
   onToolAllow?: () => void;
   onToolAllowAlways?: () => void;
   onToolDeny?: () => void;
+  diagnosticsEnabled: boolean;
 }
 
 function renderPart(part: MessagePart, index: number, callbacks: PartCallbacks): React.ReactNode {
@@ -60,7 +62,13 @@ function renderPart(part: MessagePart, index: number, callbacks: PartCallbacks):
     case 'text':
       return <TextPartRenderer key={key} part={part} />;
     case 'thinking':
-      return <ThinkingPartRenderer key={key} part={part} />;
+      return (
+        <ThinkingPartRenderer
+          key={key}
+          part={part}
+          diagnosticsEnabled={callbacks.diagnosticsEnabled}
+        />
+      );
     case 'clarification':
       return <ClarificationPartRenderer key={key} part={part} />;
     case 'plan':
@@ -73,11 +81,30 @@ function renderPart(part: MessagePart, index: number, callbacks: PartCallbacks):
         />
       );
     case 'tool_call':
-      return <ToolCallPartRenderer key={key} part={part} />;
+      return (
+        <ToolCallPartRenderer
+          key={key}
+          part={part}
+          diagnosticsEnabled={callbacks.diagnosticsEnabled}
+        />
+      );
     case 'tool_result':
-      return <ToolResultPartRenderer key={key} part={part} />;
+      return (
+        <ToolResultPartRenderer
+          key={key}
+          part={part}
+          diagnosticsEnabled={callbacks.diagnosticsEnabled}
+        />
+      );
     case 'error':
-      return <ErrorPartRenderer key={key} part={part} onRetry={callbacks.onRetry} />;
+      return (
+        <ErrorPartRenderer
+          key={key}
+          part={part}
+          onRetry={callbacks.onRetry}
+          diagnosticsEnabled={callbacks.diagnosticsEnabled}
+        />
+      );
     case 'approval':
       return (
         <ApprovalPartRenderer
@@ -98,7 +125,13 @@ function renderPart(part: MessagePart, index: number, callbacks: PartCallbacks):
         />
       );
     case 'reasoning':
-      return <ReasoningPartRenderer key={key} part={part} />;
+      return (
+        <ReasoningPartRenderer
+          key={key}
+          part={part}
+          diagnosticsEnabled={callbacks.diagnosticsEnabled}
+        />
+      );
     case 'compaction':
       return <CompactionPartRenderer key={key} part={part} />;
     case 'patch':
@@ -130,8 +163,10 @@ export function ConversationMessageItem({
   onToolAllow,
   onToolAllowAlways,
   onToolDeny,
+  diagnosticsEnabled = true,
   className = '',
 }: ConversationMessageItemProps) {
+  const showDiagnostics = import.meta.env.DEV && diagnosticsEnabled;
   const isUser = message.role === 'user';
   const isSystem = message.role === 'system';
 
@@ -144,8 +179,10 @@ export function ConversationMessageItem({
 
     return (
       <div className={`flex justify-end ${className}`} data-testid="conversation-message-user">
-        <div className="max-w-[86%] px-3 py-2 rounded-lg bg-primary-600/15 border border-primary-500/20 text-text-primary">
-          <p className="text-sm whitespace-pre-wrap">{textContent}</p>
+        <div className="min-w-0 max-w-[86%] overflow-hidden rounded-lg border border-primary-500/20 bg-primary-600/15 px-3 py-2 text-text-primary">
+          <p className="max-w-full whitespace-pre-wrap break-words text-sm [overflow-wrap:anywhere]">
+            {textContent}
+          </p>
           <div className="flex items-center gap-2 mt-1">
             <span className="text-xs opacity-60 block">
               {new Date(message.timestamp).toLocaleTimeString()}
@@ -174,8 +211,10 @@ export function ConversationMessageItem({
 
     return (
       <div className={`flex justify-center ${className}`} data-testid="conversation-message-system">
-        <div className="w-full max-w-sm mx-auto text-center px-4 py-2 rounded-md bg-yellow-500/10 text-yellow-400 border border-yellow-500/20">
-          <p className="text-sm whitespace-pre-wrap">{textContent}</p>
+        <div className="mx-auto w-full min-w-0 max-w-sm overflow-hidden rounded-md border border-yellow-500/20 bg-yellow-500/10 px-4 py-2 text-center text-yellow-400">
+          <p className="max-w-full whitespace-pre-wrap break-words text-sm [overflow-wrap:anywhere]">
+            {textContent}
+          </p>
         </div>
       </div>
     );
@@ -188,6 +227,14 @@ export function ConversationMessageItem({
   const artifactParts = message.parts
     .map((part, index) => ({ part, index }))
     .filter(({ part }) => isArtifactPart(part));
+  const completedToolStepIds = new Set(
+    artifactParts.flatMap(({ part }) => (part.type === 'tool_result' ? [part.stepId] : [])),
+  );
+  const renderedArtifactParts = showDiagnostics
+    ? artifactParts
+    : artifactParts.filter(
+        ({ part }) => part.type !== 'tool_call' || !completedToolStepIds.has(part.stepId),
+      );
   const toolCallCount = artifactParts.filter(({ part }) => part.type === 'tool_call').length;
   const toolResultCount = artifactParts.filter(({ part }) => part.type === 'tool_result').length;
   const patchParts = artifactParts.filter(
@@ -219,6 +266,7 @@ export function ConversationMessageItem({
             onToolAllow,
             onToolAllowAlways,
             onToolDeny,
+            diagnosticsEnabled: showDiagnostics,
           }),
         )}
         {artifactParts.length > 0 && (
@@ -234,7 +282,7 @@ export function ConversationMessageItem({
             defaultOpen={false}
             highlighted={highlightArtifacts}
           >
-            {artifactParts.map(({ part, index }) =>
+            {renderedArtifactParts.map(({ part, index }) =>
               renderPart(part, index, {
                 onApprove,
                 onReject,
@@ -242,6 +290,7 @@ export function ConversationMessageItem({
                 onToolAllow,
                 onToolAllowAlways,
                 onToolDeny,
+                diagnosticsEnabled: showDiagnostics,
               }),
             )}
           </AssistantArtifactGroup>
