@@ -110,6 +110,36 @@ describe('CaptionClip', () => {
   });
 
   describe('Click Handling', () => {
+    it('should select and edit the caption when Space and Enter are pressed', () => {
+      const onClick = vi.fn();
+      const onDoubleClick = vi.fn();
+      const caption = createTestCaption({ text: 'Keyboard caption' });
+
+      render(
+        <CaptionClip
+          caption={caption}
+          zoom={100}
+          selected={true}
+          onClick={onClick}
+          onDoubleClick={onDoubleClick}
+        />,
+      );
+
+      const clip = screen.getByRole('button', { name: 'Caption: Keyboard caption' });
+      expect(clip).toHaveAttribute('tabindex', '0');
+      expect(clip).toHaveAttribute('aria-pressed', 'true');
+
+      fireEvent.keyDown(clip, { key: ' ', shiftKey: true });
+      expect(onClick).toHaveBeenCalledWith('caption_001', {
+        ctrlKey: false,
+        shiftKey: true,
+        metaKey: false,
+      });
+
+      fireEvent.keyDown(clip, { key: 'Enter' });
+      expect(onDoubleClick).toHaveBeenCalledWith('caption_001');
+    });
+
     it('calls onClick with caption id and modifiers', () => {
       const onClick = vi.fn();
       const caption = createTestCaption({ id: 'test_caption' });
@@ -119,11 +149,14 @@ describe('CaptionClip', () => {
       const clipElement = screen.getByTestId('caption-clip-test_caption');
       fireEvent.click(clipElement);
 
-      expect(onClick).toHaveBeenCalledWith('test_caption', expect.objectContaining({
-        ctrlKey: false,
-        shiftKey: false,
-        metaKey: false,
-      }));
+      expect(onClick).toHaveBeenCalledWith(
+        'test_caption',
+        expect.objectContaining({
+          ctrlKey: false,
+          shiftKey: false,
+          metaKey: false,
+        }),
+      );
     });
 
     it('passes modifier keys correctly', () => {
@@ -140,7 +173,7 @@ describe('CaptionClip', () => {
         expect.objectContaining({
           ctrlKey: true,
           shiftKey: true,
-        })
+        }),
       );
     });
 
@@ -149,13 +182,21 @@ describe('CaptionClip', () => {
       const caption = createTestCaption();
 
       render(
-        <CaptionClip caption={caption} zoom={100} selected={false} onClick={onClick} disabled={true} />
+        <CaptionClip
+          caption={caption}
+          zoom={100}
+          selected={false}
+          onClick={onClick}
+          disabled={true}
+        />,
       );
 
       const clipElement = screen.getByTestId('caption-clip-caption_001');
       fireEvent.click(clipElement);
 
       expect(onClick).not.toHaveBeenCalled();
+      expect(clipElement).toHaveAttribute('aria-disabled', 'true');
+      expect(clipElement).toHaveAttribute('tabindex', '-1');
     });
 
     it('calls onDoubleClick when double-clicked', () => {
@@ -163,12 +204,7 @@ describe('CaptionClip', () => {
       const caption = createTestCaption({ id: 'dbl_click_caption' });
 
       render(
-        <CaptionClip
-          caption={caption}
-          zoom={100}
-          selected={false}
-          onDoubleClick={onDoubleClick}
-        />
+        <CaptionClip caption={caption} zoom={100} selected={false} onDoubleClick={onDoubleClick} />,
       );
 
       const clipElement = screen.getByTestId('caption-clip-dbl_click_caption');
@@ -195,12 +231,7 @@ describe('CaptionClip', () => {
       const speakerColor: CaptionColor = { r: 255, g: 0, b: 0, a: 255 };
 
       render(
-        <CaptionClip
-          caption={caption}
-          zoom={100}
-          selected={false}
-          speakerColor={speakerColor}
-        />
+        <CaptionClip caption={caption} zoom={100} selected={false} speakerColor={speakerColor} />,
       );
 
       const clipElement = screen.getByTestId('caption-clip-caption_001');
@@ -212,9 +243,7 @@ describe('CaptionClip', () => {
       const caption1 = createTestCaption({ id: 'c1', speaker: 'Bob' });
       const caption2 = createTestCaption({ id: 'c2', speaker: 'Bob' });
 
-      const { rerender } = render(
-        <CaptionClip caption={caption1} zoom={100} selected={false} />
-      );
+      const { rerender } = render(<CaptionClip caption={caption1} zoom={100} selected={false} />);
       const clip1Element = screen.getByTestId('caption-clip-c1');
       const color1 = clip1Element.style.backgroundColor;
 

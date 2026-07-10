@@ -5,7 +5,7 @@
  * Supports different marker types with distinct visual styles.
  */
 
-import { useMemo, type MouseEvent } from 'react';
+import { useMemo, type KeyboardEvent, type MouseEvent } from 'react';
 import { Flag, Bookmark, Megaphone, CheckSquare, Circle } from 'lucide-react';
 import type { Marker, Color, ClickModifiers } from '@/types';
 
@@ -25,6 +25,10 @@ interface MarkerPinProps {
   selected: boolean;
   /** Whether interaction is disabled */
   disabled?: boolean;
+  /** Horizontal start of the visible marker viewport in content pixels. */
+  viewportLeft?: number;
+  /** Width of the visible marker viewport in pixels. */
+  viewportWidth?: number;
   /** Click handler */
   onClick?: (markerId: string, modifiers: ClickModifiers) => void;
   /** Double-click handler (opens editor) */
@@ -42,6 +46,12 @@ const ICON_SIZE = 12;
 
 /** Marker pin height */
 const PIN_HEIGHT = 20;
+
+/** Maximum width of a marker label. */
+const LABEL_MAX_WIDTH = 160;
+
+/** Gap between the pin, label, and viewport edge. */
+const LABEL_GAP = 4;
 
 // =============================================================================
 // Helper Functions
@@ -113,6 +123,8 @@ export function MarkerPin({
   zoom,
   selected,
   disabled = false,
+  viewportLeft = 0,
+  viewportWidth,
   onClick,
   onDoubleClick,
   onContextMenu,
@@ -130,6 +142,24 @@ export function MarkerPin({
 
   const backgroundColor = colorToRgba(markerColor);
   const textColor = getContrastColor(markerColor);
+  const normalizedLabel = marker.label.trim() || 'Untitled marker';
+  const accessibleLabel = `${normalizedLabel}, ${marker.markerType} marker at ${marker.timeSec.toFixed(2)} seconds`;
+  const labelLayout = useMemo(() => {
+    if (viewportWidth === undefined) {
+      return { placeOnLeft: false, maxWidth: LABEL_MAX_WIDTH };
+    }
+
+    const markerViewportX = left - viewportLeft;
+    const pinRadius = PIN_HEIGHT / 2;
+    const leftSpace = Math.max(0, markerViewportX - pinRadius - LABEL_GAP * 2);
+    const rightSpace = Math.max(0, viewportWidth - markerViewportX - pinRadius - LABEL_GAP * 2);
+    const placeOnLeft = leftSpace > rightSpace;
+
+    return {
+      placeOnLeft,
+      maxWidth: Math.min(LABEL_MAX_WIDTH, placeOnLeft ? leftSpace : rightSpace),
+    };
+  }, [left, viewportLeft, viewportWidth]);
 
   // Get icon component
   const Icon = getMarkerIcon(marker.markerType);
@@ -163,11 +193,46 @@ export function MarkerPin({
     }
   };
 
+  const handleKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
+    if (event.target !== event.currentTarget || disabled) {
+      return;
+    }
+
+    const modifiers: ClickModifiers = {
+      ctrlKey: event.ctrlKey,
+      shiftKey: event.shiftKey,
+      metaKey: event.metaKey,
+    };
+
+    if (event.key === ' ' && onClick) {
+      event.preventDefault();
+      event.stopPropagation();
+      onClick(marker.id, modifiers);
+      return;
+    }
+
+    if (event.key === 'Enter' && (onDoubleClick || onClick)) {
+      event.preventDefault();
+      event.stopPropagation();
+
+      if (onDoubleClick) {
+        onDoubleClick(marker.id);
+      } else {
+        onClick?.(marker.id, modifiers);
+      }
+    }
+  };
+
   return (
     <div
       data-testid={`marker-pin-${marker.id}`}
+      role="button"
+      aria-label={accessibleLabel}
+      aria-pressed={selected}
+      aria-disabled={disabled}
+      tabIndex={disabled ? -1 : 0}
       className={`
-        absolute flex flex-col items-center cursor-pointer select-none
+        group absolute flex flex-col items-center cursor-pointer select-none focus-visible:outline-none
         transition-transform duration-100
         ${disabled ? 'opacity-50 cursor-not-allowed' : 'hover:scale-110'}
         ${selected ? 'z-20' : 'z-10'}
@@ -180,13 +245,15 @@ export function MarkerPin({
       onClick={handleClick}
       onDoubleClick={handleDoubleClick}
       onContextMenu={handleContextMenu}
-      title={`${marker.label}\n${marker.markerType}`}
+      onKeyDown={handleKeyDown}
+      title={`${normalizedLabel}\n${marker.markerType} marker at ${marker.timeSec.toFixed(2)} seconds`}
     >
       {/* Marker head */}
       <div
         className={`
           flex items-center justify-center rounded-sm
           ${selected ? 'ring-2 ring-white ring-offset-1 ring-offset-black' : ''}
+          group-focus-visible:ring-2 group-focus-visible:ring-white group-focus-visible:ring-offset-1 group-focus-visible:ring-offset-black
         `}
         style={{
           width: `${PIN_HEIGHT}px`,
@@ -194,11 +261,7 @@ export function MarkerPin({
           backgroundColor,
         }}
       >
-        <Icon
-          size={ICON_SIZE}
-          style={{ color: textColor }}
-          strokeWidth={2}
-        />
+        <Icon size={ICON_SIZE} style={{ color: textColor }} strokeWidth={2} aria-hidden="true" />
       </div>
 
       {/* Marker stem/line */}
@@ -213,17 +276,18 @@ export function MarkerPin({
       {/* Label (shown on hover or when selected) */}
       {(selected || marker.label) && (
         <div
+          aria-hidden="true"
+          data-testid={`marker-label-${marker.id}`}
           className={`
-            absolute top-full mt-0.5 px-1.5 py-0.5 rounded text-[10px] whitespace-nowrap
-            ${selected ? 'opacity-100' : 'opacity-0 hover:opacity-100'}
+            pointer-events-none absolute top-0 z-30 box-border w-max truncate rounded px-1.5 py-0.5 text-[10px]
+            ${labelLayout.placeOnLeft ? 'right-full mr-1' : 'left-full ml-1'}
+            ${selected ? 'opacity-100' : 'opacity-0 group-hover:opacity-100 group-focus-visible:opacity-100'}
             transition-opacity duration-150
           `}
           style={{
             backgroundColor: 'rgba(0, 0, 0, 0.8)',
             color: '#ffffff',
-            maxWidth: '100px',
-            overflow: 'hidden',
-            textOverflow: 'ellipsis',
+            maxWidth: `${labelLayout.maxWidth}px`,
           }}
         >
           {marker.label || marker.markerType}

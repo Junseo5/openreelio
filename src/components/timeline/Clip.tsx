@@ -5,7 +5,7 @@
  * Uses the useClipDrag hook for smooth drag operations with delta accumulation.
  */
 
-import { useMemo, useRef, useEffect, type MouseEvent } from 'react';
+import { useMemo, useRef, useEffect, type KeyboardEvent, type MouseEvent } from 'react';
 import { Type, AlertTriangle } from 'lucide-react';
 import { useProjectStore } from '@/stores/projectStore';
 import { useEditorToolStore } from '@/stores/editorToolStore';
@@ -329,6 +329,36 @@ export function Clip({
       ? 'Text'
       : (thumbnailConfig?.asset.name ?? waveformConfig?.displayLabel ?? clip.assetId));
 
+  const handleKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
+    if (event.target !== event.currentTarget || disabled) {
+      return;
+    }
+
+    const modifiers: ClickModifiers = {
+      ctrlKey: event.ctrlKey,
+      shiftKey: event.shiftKey,
+      metaKey: event.metaKey,
+    };
+
+    if (event.key === ' ' && onClick) {
+      event.preventDefault();
+      event.stopPropagation();
+      onClick(clip.id, modifiers);
+      return;
+    }
+
+    if (event.key === 'Enter' && (onDoubleClick || onClick)) {
+      event.preventDefault();
+      event.stopPropagation();
+
+      if (onDoubleClick) {
+        onDoubleClick(clip.id);
+      } else {
+        onClick?.(clip.id, modifiers);
+      }
+    }
+  };
+
   const isClipDisabled = clip.enabled === false;
 
   // Determine opacity class based on combined disabled states.
@@ -357,8 +387,14 @@ export function Clip({
   return (
     <div
       data-testid={`clip-${clip.id}`}
+      role="button"
+      aria-label={`Timeline clip: ${displayLabel}`}
+      aria-pressed={selected}
+      aria-disabled={disabled}
+      tabIndex={disabled ? -1 : 0}
       className={`
         absolute h-full overflow-hidden rounded-sm cursor-pointer transition-shadow select-none
+        focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-white
         ${selected ? 'ring-2 ring-primary-400 z-10' : clip.groupId ? 'ring-1 ring-emerald-400/70' : ''}
         ${disabled ? 'cursor-not-allowed' : 'hover:brightness-110'}
         ${isDragging ? 'z-20' : ''}
@@ -377,6 +413,7 @@ export function Clip({
       title={displayLabel}
       onClick={handleClick}
       onDoubleClick={handleDoubleClick}
+      onKeyDown={handleKeyDown}
       onMouseDown={handleClipMouseDown}
       onContextMenu={(e) => onContextMenu?.(e, clip.id)}
     >
