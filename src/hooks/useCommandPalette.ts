@@ -13,7 +13,7 @@ import { useProjectStore } from '@/stores/projectStore';
 import { usePlaybackStore } from '@/stores/playbackStore';
 import { useTimelineStore } from '@/stores/timelineStore';
 import { useEditorToolStore, TOOL_CONFIGS } from '@/stores/editorToolStore';
-import { useUIStore } from '@/stores/uiStore';
+import { useUIStore, type SettingsTab } from '@/stores/uiStore';
 import {
   useCommandPaletteStore,
   type PaletteAction,
@@ -111,6 +111,38 @@ function action(
   shortcut?: string,
 ): PaletteAction {
   return { id, label, category, execute, shortcut, enabled: true };
+}
+
+export function createSettingsPaletteActions(
+  openSettings: (tab?: SettingsTab) => void,
+  isDevelopment: boolean = import.meta.env.DEV,
+): PaletteAction[] {
+  const settingsActions = [
+    action('settings.open', 'Open Settings', 'Settings', () => openSettings(), 'Ctrl+,'),
+    action('settings.general', 'Settings: General', 'Settings', () => openSettings('general')),
+    action('settings.playback', 'Settings: Playback', 'Settings', () => openSettings('playback')),
+    action('settings.performance', 'Settings: Performance', 'Settings', () =>
+      openSettings('performance'),
+    ),
+    action('settings.appearance', 'Settings: Appearance', 'Settings', () =>
+      openSettings('appearance'),
+    ),
+    action('settings.shortcuts', 'Settings: Keyboard Shortcuts', 'Settings', () =>
+      openSettings('shortcuts'),
+    ),
+    action('settings.terminal', 'Settings: Terminal', 'Settings', () => openSettings('terminal')),
+    action('settings.ai', 'Settings: AI', 'Settings', () => openSettings('ai')),
+  ];
+
+  if (isDevelopment) {
+    settingsActions.push(
+      action('settings.developer', 'Settings: Developer', 'Settings', () =>
+        openSettings('developer'),
+      ),
+    );
+  }
+
+  return settingsActions;
 }
 
 // =============================================================================
@@ -400,25 +432,7 @@ export function useCommandPalette(
     }
 
     // --- Settings Actions ---
-    actions.push(
-      action('settings.open', 'Open Settings', 'Settings', () => openSettings(), 'Ctrl+,'),
-      action('settings.general', 'Settings: General', 'Settings', () => openSettings('general')),
-      action('settings.playback', 'Settings: Playback', 'Settings', () => openSettings('playback')),
-      action('settings.performance', 'Settings: Performance', 'Settings', () =>
-        openSettings('performance'),
-      ),
-      action('settings.appearance', 'Settings: Appearance', 'Settings', () =>
-        openSettings('appearance'),
-      ),
-      action('settings.shortcuts', 'Settings: Keyboard Shortcuts', 'Settings', () =>
-        openSettings('shortcuts'),
-      ),
-      action('settings.terminal', 'Settings: Terminal', 'Settings', () => openSettings('terminal')),
-      action('settings.ai', 'Settings: AI', 'Settings', () => openSettings('ai')),
-      action('settings.developer', 'Settings: Developer', 'Settings', () =>
-        openSettings('developer'),
-      ),
-    );
+    actions.push(...createSettingsPaletteActions(openSettings));
 
     return actions;
   }, [

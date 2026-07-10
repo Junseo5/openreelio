@@ -68,10 +68,12 @@ const PreviewScopesPanelLazy = lazy(async () => {
   return { default: module.PreviewScopesPanel };
 });
 
-const PerformancePanelLazy = lazy(async () => {
-  const module = await import('@/components/features/dev');
-  return { default: module.PerformancePanel };
-});
+const PerformancePanelLazy = import.meta.env.DEV
+  ? lazy(async () => {
+      const module = await import('@/components/features/dev');
+      return { default: module.PerformancePanel };
+    })
+  : null;
 
 const TerminalPanelLazy = lazy(async () => {
   const module = await import('@/components/features/terminal');
@@ -292,10 +294,10 @@ export function createEditorPanelContent({
       </Suspense>
     ) : undefined,
 
-    performance: (
+    performance: PerformancePanelLazy ? (
       <Suspense fallback={BOTTOM_PANEL_LOADING_FALLBACK}>
         <PerformancePanelLazy />
       </Suspense>
-    ),
+    ) : undefined,
   };
 }

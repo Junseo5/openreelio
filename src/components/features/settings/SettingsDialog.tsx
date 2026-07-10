@@ -4,7 +4,7 @@
  * Modal dialog for application settings with tabbed navigation.
  */
 
-import { useEffect, useRef, useCallback } from 'react';
+import { lazy, Suspense, useEffect, useCallback } from 'react';
 import {
   X,
   Settings2,
@@ -20,15 +20,25 @@ import {
 } from 'lucide-react';
 import { useSettings } from '@/hooks/useSettings';
 import { useUIStore } from '@/stores';
+import type { SettingsTab } from '@/stores/uiStore';
+import { ModalShell } from '@/components/ui';
+import { getUserFriendlyError } from '@/utils/errorMessages';
 import { GeneralSettings } from './sections/GeneralSettings';
 import { AppearanceSettings } from './sections/AppearanceSettings';
 import { ShortcutsSettings } from './sections/ShortcutsSettings';
 import { AISettingsSection } from './sections/AISettingsSection';
 import { AgentPermissionsSection } from './sections/AgentPermissionsSection';
-import { DeveloperSettings } from './sections/DeveloperSettings';
 import { PlaybackSettings } from './sections/PlaybackSettings';
 import { PerformanceSettings } from './sections/PerformanceSettings';
 import { TerminalSettings } from './sections/TerminalSettings';
+import { isSettingsTabVisible } from './settingsVisibility';
+
+const DeveloperSettings = import.meta.env.DEV
+  ? lazy(async () => {
+      const module = await import('./sections/DeveloperSettings');
+      return { default: module.DeveloperSettings };
+    })
+  : null;
 
 // =============================================================================
 // Types
@@ -39,19 +49,8 @@ export interface SettingsDialogProps {
   onClose: () => void;
 }
 
-type TabId =
-  | 'general'
-  | 'playback'
-  | 'performance'
-  | 'appearance'
-  | 'shortcuts'
-  | 'terminal'
-  | 'ai'
-  | 'permissions'
-  | 'developer';
-
 interface Tab {
-  id: TabId;
+  id: SettingsTab;
   label: string;
   icon: React.ReactNode;
 }
@@ -60,7 +59,7 @@ interface Tab {
 // Constants
 // =============================================================================
 
-const TABS: Tab[] = [
+const STANDARD_TABS: Tab[] = [
   { id: 'general', label: 'General', icon: <Settings2 className="w-4 h-4" /> },
   { id: 'playback', label: 'Playback', icon: <Play className="w-4 h-4" /> },
   { id: 'performance', label: 'Performance', icon: <Gauge className="w-4 h-4" /> },
@@ -69,8 +68,15 @@ const TABS: Tab[] = [
   { id: 'terminal', label: 'Terminal', icon: <Terminal className="w-4 h-4" /> },
   { id: 'ai', label: 'AI', icon: <Bot className="w-4 h-4" /> },
   { id: 'permissions', label: 'Permissions', icon: <Shield className="w-4 h-4" /> },
-  { id: 'developer', label: 'Developer', icon: <Wrench className="w-4 h-4" /> },
 ];
+
+const DEVELOPER_TAB: Tab = {
+  id: 'developer',
+  label: 'Developer',
+  icon: <Wrench className="w-4 h-4" />,
+};
+
+const ALL_TABS = [...STANDARD_TABS, DEVELOPER_TAB];
 
 // =============================================================================
 // Component
@@ -79,7 +85,9 @@ const TABS: Tab[] = [
 export function SettingsDialog({ isOpen, onClose }: SettingsDialogProps) {
   const activeTab = useUIStore((state) => state.settingsActiveTab);
   const setActiveTab = useUIStore((state) => state.setSettingsTab);
-  const dialogRef = useRef<HTMLDivElement>(null);
+  const visibleTabs = ALL_TABS.filter((tab) => isSettingsTabVisible(tab.id, import.meta.env.DEV));
+  const visibleActiveTab =
+    activeTab === 'developer' && !import.meta.env.DEV ? 'general' : activeTab;
 
   const {
     general,
@@ -99,13 +107,9 @@ export function SettingsDialog({ isOpen, onClose }: SettingsDialogProps) {
     error,
     clearError,
   } = useSettings();
-
-  // Focus trap and keyboard handling
-  useEffect(() => {
-    if (isOpen) {
-      dialogRef.current?.focus();
-    }
-  }, [isOpen]);
+  const visibleError = error
+    ? getUserFriendlyError(error, { includeTechnicalDetails: import.meta.env.DEV })
+    : null;
 
   // Clear error when dialog opens (tab is already set by openSettings)
   useEffect(() => {
@@ -113,6 +117,12 @@ export function SettingsDialog({ isOpen, onClose }: SettingsDialogProps) {
       clearError();
     }
   }, [isOpen, clearError]);
+
+  useEffect(() => {
+    if (isOpen && activeTab === 'developer' && !import.meta.env.DEV) {
+      setActiveTab('general');
+    }
+  }, [activeTab, isOpen, setActiveTab]);
 
   const handleKeyDown = useCallback(
     (e: React.KeyboardEvent) => {
@@ -176,20 +186,16 @@ export function SettingsDialog({ isOpen, onClose }: SettingsDialogProps) {
   }
 
   return (
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/60"
-      onClick={(e) => e.target === e.currentTarget && onClose()}
-    >
-      <div
-        ref={dialogRef}
-        role="dialog"
-        aria-labelledby="settings-title"
-        aria-modal="true"
-        tabIndex={-1}
-        className="bg-editor-panel border border-editor-border rounded-xl shadow-2xl w-full max-w-2xl mx-4 max-h-[80vh] flex flex-col"
-        onKeyDown={handleKeyDown}
-      >
-        {/* Header */}
+    <ModalShell
+      ariaLabelledBy="settings-title"
+      onRequestClose={onClose}
+      onKeyDown={handleKeyDown}
+      widthClassName="max-w-2xl"
+      overlayClassName="bg-black/60"
+      dialogClassName="max-h-[80dvh] rounded-xl border border-editor-border bg-editor-panel shadow-2xl"
+      bodyClassName="!overflow-hidden"
+      testId="settings-dialog"
+      header={
         <div className="flex items-center justify-between px-6 py-4 border-b border-editor-border shrink-0">
           <h2 id="settings-title" className="text-lg font-semibold text-editor-text">
             Settings
@@ -202,119 +208,131 @@ export function SettingsDialog({ isOpen, onClose }: SettingsDialogProps) {
             <X className="w-5 h-5" />
           </button>
         </div>
-
-        {/* Body */}
-        <div className="flex flex-1 min-h-0">
-          {/* Tab Navigation */}
-          <nav className="w-44 border-r border-editor-border p-2 shrink-0">
-            {TABS.map((tab) => (
-              <button
-                key={tab.id}
-                onClick={() => setActiveTab(tab.id)}
-                className={`
-                  w-full flex items-center gap-3 px-3 py-2 rounded-lg text-left transition-colors
-                  ${
-                    activeTab === tab.id
-                      ? 'bg-primary-500/10 text-primary-400'
-                      : 'text-editor-text-muted hover:bg-editor-bg hover:text-editor-text'
-                  }
-                `}
-              >
-                {tab.icon}
-                <span className="text-sm">{tab.label}</span>
-              </button>
-            ))}
-          </nav>
-
-          {/* Tab Content */}
-          <div className="flex-1 p-6 overflow-y-auto">
-            {/* Error Display */}
-            {error && (
-              <div className="mb-4 p-3 bg-red-500/10 border border-red-500/20 rounded-lg">
-                <p className="text-sm text-red-400">{error}</p>
-              </div>
-            )}
-
-            {/* Saving Indicator */}
-            {isSaving && (
-              <div className="mb-4 p-3 bg-primary-500/10 border border-primary-500/20 rounded-lg">
-                <p className="text-sm text-primary-400">Saving settings...</p>
-              </div>
-            )}
-
-            {activeTab === 'general' && (
-              <GeneralSettings
-                settings={general}
-                onUpdate={handleGeneralUpdate}
-                disabled={isSaving}
-              />
-            )}
-
-            {activeTab === 'playback' && (
-              <PlaybackSettings
-                settings={playback}
-                onUpdate={handlePlaybackUpdate}
-                disabled={isSaving}
-              />
-            )}
-
-            {activeTab === 'performance' && (
-              <PerformanceSettings
-                settings={performance}
-                onUpdate={handlePerformanceUpdate}
-                disabled={isSaving}
-              />
-            )}
-
-            {activeTab === 'appearance' && (
-              <AppearanceSettings
-                settings={appearance}
-                onUpdate={handleAppearanceUpdate}
-                disabled={isSaving}
-              />
-            )}
-
-            {activeTab === 'shortcuts' && <ShortcutsSettings />}
-
-            {activeTab === 'terminal' && (
-              <TerminalSettings
-                settings={terminal}
-                onUpdate={handleTerminalUpdate}
-                disabled={isSaving}
-              />
-            )}
-
-            {activeTab === 'ai' && (
-              <AISettingsSection settings={ai} onUpdate={handleAIUpdate} disabled={isSaving} />
-            )}
-
-            {activeTab === 'permissions' && <AgentPermissionsSection />}
-
-            {activeTab === 'developer' && <DeveloperSettings />}
-          </div>
-        </div>
-
-        {/* Footer */}
-        <div className="flex justify-between items-center px-6 py-4 border-t border-editor-border bg-editor-sidebar/50 rounded-b-xl shrink-0">
+      }
+      footer={
+        <div className="flex items-center justify-between gap-3 rounded-b-xl border-t border-editor-border bg-editor-sidebar/50 px-4 py-4 sm:px-6">
           <button
             type="button"
             onClick={() => void handleReset()}
             disabled={isSaving}
-            className="flex items-center gap-2 px-3 py-1.5 text-sm text-editor-text-muted hover:text-editor-text transition-colors disabled:opacity-50"
+            className="flex min-w-0 items-center gap-2 px-3 py-1.5 text-sm text-editor-text-muted transition-colors hover:text-editor-text disabled:opacity-50"
           >
-            <RotateCcw className="w-4 h-4" />
-            Reset to Defaults
+            <RotateCcw className="h-4 w-4 shrink-0" />
+            <span className="truncate">Reset to Defaults</span>
           </button>
           <button
             type="button"
             onClick={onClose}
-            className="px-4 py-2 text-sm bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors"
+            className="shrink-0 rounded-lg bg-primary-600 px-4 py-2 text-sm text-white transition-colors hover:bg-primary-700"
           >
             Done
           </button>
         </div>
+      }
+    >
+      <div className="flex h-full min-h-0 min-w-0">
+        {/* Tab Navigation */}
+        <nav
+          aria-label="Settings sections"
+          className="w-14 shrink-0 overflow-y-auto border-r border-editor-border p-2 sm:w-44"
+        >
+          {visibleTabs.map((tab) => (
+            <button
+              key={tab.id}
+              onClick={() => setActiveTab(tab.id)}
+              aria-label={tab.label}
+              aria-current={visibleActiveTab === tab.id ? 'page' : undefined}
+              className={`
+                  flex w-full items-center justify-center gap-3 rounded-lg px-2 py-2 text-left transition-colors sm:justify-start sm:px-3
+                  ${
+                    visibleActiveTab === tab.id
+                      ? 'bg-primary-500/10 text-primary-400'
+                      : 'text-editor-text-muted hover:bg-editor-bg hover:text-editor-text'
+                  }
+                `}
+            >
+              <span className="shrink-0" aria-hidden="true">
+                {tab.icon}
+              </span>
+              <span className="hidden min-w-0 truncate text-sm sm:block">{tab.label}</span>
+            </button>
+          ))}
+        </nav>
+
+        {/* Tab Content */}
+        <div className="min-w-0 flex-1 overflow-y-auto p-4 sm:p-6">
+          {/* Error Display */}
+          {visibleError && (
+            <div className="mb-4 min-w-0 rounded-lg border border-red-500/20 bg-red-500/10 p-3">
+              <p className="max-w-full break-words text-sm text-red-400 [overflow-wrap:anywhere]">
+                {visibleError}
+              </p>
+            </div>
+          )}
+
+          {/* Saving Indicator */}
+          {isSaving && (
+            <div className="mb-4 p-3 bg-primary-500/10 border border-primary-500/20 rounded-lg">
+              <p className="text-sm text-primary-400">Saving settings...</p>
+            </div>
+          )}
+
+          {visibleActiveTab === 'general' && (
+            <GeneralSettings
+              settings={general}
+              onUpdate={handleGeneralUpdate}
+              disabled={isSaving}
+            />
+          )}
+
+          {visibleActiveTab === 'playback' && (
+            <PlaybackSettings
+              settings={playback}
+              onUpdate={handlePlaybackUpdate}
+              disabled={isSaving}
+            />
+          )}
+
+          {visibleActiveTab === 'performance' && (
+            <PerformanceSettings
+              settings={performance}
+              onUpdate={handlePerformanceUpdate}
+              disabled={isSaving}
+            />
+          )}
+
+          {visibleActiveTab === 'appearance' && (
+            <AppearanceSettings
+              settings={appearance}
+              onUpdate={handleAppearanceUpdate}
+              disabled={isSaving}
+            />
+          )}
+
+          {visibleActiveTab === 'shortcuts' && <ShortcutsSettings />}
+
+          {visibleActiveTab === 'terminal' && (
+            <TerminalSettings
+              settings={terminal}
+              onUpdate={handleTerminalUpdate}
+              disabled={isSaving}
+            />
+          )}
+
+          {visibleActiveTab === 'ai' && (
+            <AISettingsSection settings={ai} onUpdate={handleAIUpdate} disabled={isSaving} />
+          )}
+
+          {visibleActiveTab === 'permissions' && <AgentPermissionsSection />}
+
+          {visibleActiveTab === 'developer' && DeveloperSettings && (
+            <Suspense fallback={null}>
+              <DeveloperSettings />
+            </Suspense>
+          )}
+        </div>
       </div>
-    </div>
+    </ModalShell>
   );
 }
 

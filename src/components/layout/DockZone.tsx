@@ -400,6 +400,9 @@ export function DockZone({
           >
             {panelIds.map((panelId) => {
               const meta = PANEL_REGISTRY[panelId];
+              if (!meta) {
+                return null;
+              }
               const PanelIcon = PANEL_ICONS[panelId];
               const isActive = activePanelId === panelId && !collapsed;
               const isDraggable = panelId !== 'terminal';
