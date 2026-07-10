@@ -51,39 +51,6 @@ describe('FileTreeItem', () => {
     expect(screen.getByText('footage')).toBeInTheDocument();
   });
 
-  it('includes workspace metadata in drag payload', () => {
-    const entry = createFileEntry({
-      kind: 'image',
-      relativePath: 'images/logo.png',
-      name: 'logo.png',
-      assetId: 'asset_logo',
-    });
-
-    render(<FileTreeItem entry={entry} />);
-
-    const row = screen.getByTitle('images/logo.png');
-    const setData = vi.fn();
-    const dragEventDataTransfer = {
-      setData,
-      effectAllowed: 'none',
-    };
-
-    fireEvent.dragStart(row, {
-      dataTransfer: dragEventDataTransfer,
-    });
-
-    expect(setData).toHaveBeenCalledWith('application/x-workspace-file', 'images/logo.png');
-    expect(setData).toHaveBeenCalledWith(
-      'application/json',
-      JSON.stringify({
-        assetId: 'asset_logo',
-        kind: 'image',
-        workspaceRelativePath: 'images/logo.png',
-      }),
-    );
-    expect(setData).toHaveBeenCalledWith('text/plain', 'asset_logo');
-  });
-
   it('emits pointer-driven timeline drag payload for non-directory entries', () => {
     const entry = createFileEntry({
       assetId: 'asset_interview',

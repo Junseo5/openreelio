@@ -1,4 +1,4 @@
-import type { DragEventHandler, MouseEventHandler, PointerEventHandler } from 'react';
+import type { MouseEventHandler, PointerEventHandler } from 'react';
 import {
   AlertTriangle,
   ChevronDown,
@@ -23,7 +23,6 @@ interface FileTreeEntryRowProps {
   onDoubleClick: () => void;
   onContextMenu: MouseEventHandler<HTMLDivElement>;
   onPointerDown: PointerEventHandler<HTMLDivElement>;
-  onDragStart: DragEventHandler<HTMLDivElement>;
   onToggle: () => void;
 }
 
@@ -60,7 +59,6 @@ export function FileTreeEntryRow({
   onDoubleClick,
   onContextMenu,
   onPointerDown,
-  onDragStart,
   onToggle,
 }: FileTreeEntryRowProps) {
   return (
@@ -77,7 +75,6 @@ export function FileTreeEntryRow({
       onContextMenu={onContextMenu}
       onPointerDown={onPointerDown}
       draggable={false}
-      onDragStart={onDragStart}
       title={entry.relativePath}
     >
       {entry.isDirectory ? (

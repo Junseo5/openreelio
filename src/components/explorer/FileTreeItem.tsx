@@ -1,4 +1,4 @@
-import { useCallback, useId, useRef, useState, type DragEvent, type MouseEvent } from 'react';
+import { useCallback, useId, useRef, useState, type MouseEvent } from 'react';
 
 import { useTimelineAssetDragSource } from '@/hooks/useTimelineAssetDragSource';
 import type { FileTreeEntry } from '@/types';
@@ -24,8 +24,6 @@ export interface FileTreeItemProps {
   onFileDoubleClick?: (entry: FileTreeEntry) => void;
   /** Handler for right-clicking a file. */
   onContextMenu?: (event: MouseEvent, entry: FileTreeEntry) => void;
-  /** Handler for starting a drag from a file. */
-  onDragStart?: (entry: FileTreeEntry) => void;
 }
 
 export function FileTreeItem({
@@ -38,7 +36,6 @@ export function FileTreeItem({
   onFileClick,
   onFileDoubleClick,
   onContextMenu,
-  onDragStart,
 }: FileTreeItemProps) {
   const [isExpanded, setIsExpanded] = useState(depth < 1);
   const [isLocallySelected, setIsLocallySelected] = useState(false);
@@ -78,26 +75,6 @@ export function FileTreeItem({
       onContextMenu?.(event, entry);
     },
     [entry, onContextMenu],
-  );
-
-  const handleDragStart = useCallback(
-    (event: DragEvent) => {
-      if (entry.isDirectory) {
-        event.preventDefault();
-        return;
-      }
-      const payload = {
-        ...(entry.assetId != null ? { assetId: entry.assetId } : {}),
-        ...(entry.kind != null ? { kind: entry.kind } : {}),
-        workspaceRelativePath: entry.relativePath,
-      };
-      event.dataTransfer.setData('application/x-workspace-file', entry.relativePath);
-      event.dataTransfer.setData('application/json', JSON.stringify(payload));
-      event.dataTransfer.setData('text/plain', entry.assetId ?? entry.relativePath);
-      event.dataTransfer.effectAllowed = 'copy';
-      onDragStart?.(entry);
-    },
-    [entry, onDragStart],
   );
 
   const getTimelineAssetDragPayload = useCallback(() => {
@@ -144,7 +121,6 @@ export function FileTreeItem({
         onDoubleClick={handleDoubleClick}
         onContextMenu={handleContextMenu}
         onPointerDown={timelineAssetDragSource.onPointerDown}
-        onDragStart={handleDragStart}
         onToggle={handleToggle}
       />
 
@@ -162,7 +138,6 @@ export function FileTreeItem({
               onFileClick={onFileClick}
               onFileDoubleClick={onFileDoubleClick}
               onContextMenu={onContextMenu}
-              onDragStart={onDragStart}
             />
           ))}
         </div>

@@ -27,8 +27,6 @@ export interface FileTreeProps {
   onFileDoubleClick?: (entry: FileTreeEntry) => void;
   /** Handler for right-clicking a file */
   onContextMenu?: (event: MouseEvent, entry: FileTreeEntry) => void;
-  /** Handler for starting a drag from a file */
-  onDragStart?: (entry: FileTreeEntry) => void;
 }
 
 function containsEntry(entries: FileTreeEntry[], relativePath: string): boolean {
@@ -48,7 +46,6 @@ export function FileTree({
   onFileClick,
   onFileDoubleClick,
   onContextMenu,
-  onDragStart,
 }: FileTreeProps) {
   const [selectedPath, setSelectedPath] = useState<string | null>(null);
   const [focusedPath, setFocusedPath] = useState<string | null>(entries[0]?.relativePath ?? null);
@@ -110,7 +107,6 @@ export function FileTree({
             onFileClick={onFileClick}
             onFileDoubleClick={onFileDoubleClick}
             onContextMenu={onContextMenu}
-            onDragStart={onDragStart}
           />
         ))}
       </div>
