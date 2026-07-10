@@ -5,6 +5,7 @@
  */
 
 export { ConfirmDialog, type ConfirmDialogProps, type ConfirmDialogVariant } from './ConfirmDialog';
+export { ModalShell, type ModalShellProps } from './ModalShell';
 export {
   ContextMenu,
   type ContextMenuProps,

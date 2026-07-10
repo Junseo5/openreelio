@@ -5,6 +5,7 @@
  */
 
 import { useCallback, useId, useRef, useEffect, type KeyboardEvent } from 'react';
+import { ModalShell } from './ModalShell';
 
 // =============================================================================
 // Types
@@ -73,7 +74,7 @@ export function ConfirmDialog({
         onCancel();
       }
     },
-    [onCancel]
+    [onCancel],
   );
 
   const handleBackdropClick = useCallback(() => {
@@ -81,10 +82,6 @@ export function ConfirmDialog({
       onCancel();
     }
   }, [closeOnBackdrop, onCancel]);
-
-  const handleDialogClick = useCallback((e: React.MouseEvent) => {
-    e.stopPropagation();
-  }, []);
 
   // ===========================================================================
   // Refs
@@ -112,41 +109,27 @@ export function ConfirmDialog({
   }
 
   return (
-    <div
-      data-testid="confirm-dialog"
-      role="dialog"
-      aria-modal="true"
-      aria-labelledby={titleId}
-      className="fixed inset-0 z-50 flex items-center justify-center"
+    <ModalShell
+      ariaLabelledBy={titleId}
+      onRequestClose={handleBackdropClick}
       onKeyDown={handleKeyDown}
-    >
-      {/* Backdrop */}
-      <div
-        data-testid="dialog-backdrop"
-        className="absolute inset-0 bg-surface-overlay backdrop-blur-sm"
-        onClick={handleBackdropClick}
-      />
-
-      {/* Dialog Content */}
-      <div
-        className="relative z-10 w-[calc(100%-2rem)] max-w-md mx-4 bg-surface-elevated rounded-lg shadow-xl p-6 border border-border-default"
-        onClick={handleDialogClick}
-      >
-        {/* Title */}
-        <h2 id={titleId} className="text-lg font-semibold text-text-primary mb-2">
+      overlayClassName="bg-surface-overlay backdrop-blur-sm"
+      overlayTestId="dialog-backdrop"
+      testId="confirm-dialog"
+      widthClassName="max-w-md"
+      dialogClassName="rounded-lg border border-border-default bg-surface-elevated shadow-xl"
+      header={
+        <h2 id={titleId} className="px-6 pt-6 text-lg font-semibold text-text-primary">
           {title}
         </h2>
-
-        {/* Message */}
-        <p className="text-text-secondary mb-6 break-words">{message}</p>
-
-        {/* Actions */}
-        <div className="flex flex-col-reverse sm:flex-row sm:justify-end gap-2 sm:gap-3">
+      }
+      footer={
+        <div className="flex flex-col-reverse gap-2 px-6 pb-6 sm:flex-row sm:justify-end sm:gap-3">
           <button
             ref={cancelButtonRef}
             data-testid="cancel-button"
             type="button"
-            className="px-4 py-2 text-sm font-medium text-text-secondary bg-surface-active rounded hover:bg-surface-highest transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            className="rounded bg-surface-active px-4 py-2 text-sm font-medium text-text-secondary transition-colors hover:bg-surface-highest disabled:cursor-not-allowed disabled:opacity-50"
             onClick={onCancel}
             disabled={isLoading}
           >
@@ -155,20 +138,24 @@ export function ConfirmDialog({
           <button
             data-testid="confirm-button"
             type="button"
-            className={`px-4 py-2 text-sm font-medium text-white rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 ${VARIANT_CLASSES[variant]}`}
+            className={`flex items-center justify-center gap-2 rounded px-4 py-2 text-sm font-medium text-white transition-colors disabled:cursor-not-allowed disabled:opacity-50 ${VARIANT_CLASSES[variant]}`}
             onClick={onConfirm}
             disabled={isLoading}
           >
             {isLoading && (
               <div
                 data-testid="loading-spinner"
-                className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"
+                className="h-4 w-4 animate-spin rounded-full border-2 border-white/30 border-t-white"
               />
             )}
             {confirmLabel}
           </button>
         </div>
-      </div>
-    </div>
+      }
+    >
+      <p className="break-words px-6 pb-6 pt-2 text-text-secondary [overflow-wrap:anywhere]">
+        {message}
+      </p>
+    </ModalShell>
   );
 }
