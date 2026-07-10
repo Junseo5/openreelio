@@ -1,0 +1,47 @@
+.player-controls-container {
+  container-type: inline-size;
+}
+
+.player-controls-row {
+  gap: 0.25rem;
+}
+
+.player-controls-duration,
+.player-controls-volume-slider,
+.player-controls-speed,
+.player-controls-secondary,
+.player-controls-comparison {
+  display: none;
+}
+
+@container (min-width: 28rem) {
+  .player-controls-speed {
+    display: block;
+  }
+}
+
+@container (min-width: 32rem) {
+  .player-controls-row {
+    gap: 0.5rem;
+  }
+
+  .player-controls-volume-slider {
+    display: block;
+  }
+}
+
+@container (min-width: 36rem) {
+  .player-controls-duration {
+    display: inline;
+  }
+}
+
+@container (min-width: 42rem) {
+  .player-controls-secondary {
+    display: inline-flex;
+  }
+
+  .player-controls-comparison {
+    display: block;
+  }
+}

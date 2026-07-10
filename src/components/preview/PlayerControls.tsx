@@ -14,6 +14,7 @@ import { VolumeControls } from './VolumeControls';
 import { formatTimecode } from '@/utils/formatters';
 import { ShuttleSpeedIndicator } from './ShuttleSpeedIndicator';
 import { TimecodeInput } from '@/components/features/preview/TimecodeInput';
+import './PlayerControls.css';
 
 // =============================================================================
 // Types
@@ -166,18 +167,29 @@ export function PlayerControls({
           break;
       }
     },
-    [disabled, currentTime, duration, volume, frameTime, onPlayPause, onSeek, onVolumeChange, onMuteToggle, onFullscreenToggle]
+    [
+      disabled,
+      currentTime,
+      duration,
+      volume,
+      frameTime,
+      onPlayPause,
+      onSeek,
+      onVolumeChange,
+      onMuteToggle,
+      onFullscreenToggle,
+    ],
   );
 
   return (
     <div
       data-testid="player-controls"
-      className="flex flex-col w-full bg-gradient-to-t from-black/80 to-transparent p-2 text-white"
+      className="player-controls-container flex w-full min-w-0 flex-col overflow-hidden bg-gradient-to-t from-black/80 to-transparent p-2 text-white"
       tabIndex={0}
       onKeyDown={handleKeyDown}
     >
       {/* Seek Bar */}
-      <div className="mb-2">
+      <div className="mb-2 min-w-0">
         <SeekBar
           currentTime={currentTime}
           duration={duration}
@@ -188,48 +200,59 @@ export function PlayerControls({
       </div>
 
       {/* Controls Row */}
-      <div className="flex items-center gap-2">
-        <PlaybackButtons
-          isPlaying={isPlaying}
-          currentTime={currentTime}
-          duration={duration}
-          onPlayPause={onPlayPause}
-          onSeek={onSeek}
-          disabled={disabled}
-        />
+      <div className="player-controls-row flex min-w-0 items-center">
+        <div className="shrink-0">
+          <PlaybackButtons
+            isPlaying={isPlaying}
+            currentTime={currentTime}
+            duration={duration}
+            onPlayPause={onPlayPause}
+            onSeek={onSeek}
+            disabled={disabled}
+          />
+        </div>
 
-        <div className="flex items-center gap-1 text-sm font-mono">
+        <div className="flex min-w-0 shrink items-center gap-1 overflow-hidden font-mono text-sm">
           <TimecodeInput
             currentTime={currentTime}
             duration={duration}
             fps={fps}
             onSeek={onSeek}
             disabled={disabled}
+            className="max-w-full truncate whitespace-nowrap"
           />
-          <span>/</span>
-          <span data-testid="duration-display">{formatTimecode(duration, fps)}</span>
+          <span className="player-controls-duration shrink-0">/</span>
+          <span
+            data-testid="duration-display"
+            className="player-controls-duration shrink-0 whitespace-nowrap"
+          >
+            {formatTimecode(duration, fps)}
+          </span>
         </div>
 
         {/* Shuttle Speed Badge — visible only when shuttle is active */}
         <ShuttleSpeedIndicator
           shuttleSpeed={shuttleSpeed}
-          className="static translate-x-0 text-[10px] px-1.5 py-0.5"
+          className="player-controls-secondary static translate-x-0 px-1.5 py-0.5 text-[10px]"
         />
 
-        <div className="flex-1" />
+        <div className="min-w-0 flex-1" />
 
-        <VolumeControls
-          volume={volume}
-          isMuted={isMuted}
-          onVolumeChange={onVolumeChange}
-          onMuteToggle={onMuteToggle}
-          disabled={disabled}
-        />
+        <div className="shrink-0">
+          <VolumeControls
+            volume={volume}
+            isMuted={isMuted}
+            onVolumeChange={onVolumeChange}
+            onMuteToggle={onMuteToggle}
+            disabled={disabled}
+            sliderClassName="player-controls-volume-slider"
+          />
+        </div>
 
         {/* Playback Speed Selector */}
         <select
           data-testid="speed-selector"
-          className="bg-transparent text-white text-xs px-1 py-0.5 rounded border border-white/20 hover:border-white/40 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+          className="player-controls-speed shrink-0 cursor-pointer rounded border border-white/20 bg-transparent px-1 py-0.5 text-xs text-white hover:border-white/40 disabled:cursor-not-allowed disabled:opacity-50"
           value={playbackRate.toString()}
           onChange={(e) => onPlaybackRateChange?.(parseFloat(e.target.value))}
           disabled={disabled}
@@ -246,7 +269,7 @@ export function PlayerControls({
           <button
             data-testid="comparison-toggle-button"
             type="button"
-            className={`p-1.5 rounded hover:bg-white/20 disabled:opacity-50 disabled:cursor-not-allowed ${
+            className={`player-controls-comparison shrink-0 rounded p-1.5 hover:bg-white/20 disabled:cursor-not-allowed disabled:opacity-50 ${
               isComparisonActive ? 'bg-blue-500/40 text-blue-300' : ''
             }`}
             onClick={onToggleComparison}
@@ -262,7 +285,7 @@ export function PlayerControls({
         <button
           data-testid="fullscreen-button"
           type="button"
-          className="p-1.5 rounded hover:bg-white/20 disabled:opacity-50 disabled:cursor-not-allowed"
+          className="shrink-0 rounded p-1.5 hover:bg-white/20 disabled:cursor-not-allowed disabled:opacity-50"
           onClick={handleFullscreenToggle}
           disabled={disabled}
           aria-label="Toggle fullscreen"
