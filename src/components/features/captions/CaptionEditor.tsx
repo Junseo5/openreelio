@@ -8,6 +8,7 @@
 import React, { useState, useCallback, useEffect, useRef, useMemo } from 'react';
 import { X, Trash2, Clock, User, Type, AlertTriangle, Search, Replace } from 'lucide-react';
 import type { Caption, CaptionStyle } from '@/types';
+import { ModalShell } from '@/components/ui';
 
 // =============================================================================
 // Types
@@ -332,30 +333,23 @@ export const CaptionEditor: React.FC<CaptionEditorProps> = ({
     setShowDeleteConfirm(false);
   }, [caption.id, onDelete]);
 
+  const handleCancel = useCallback((): void => {
+    resetForm();
+    onCancel();
+  }, [onCancel, resetForm]);
+
   // Handle keyboard events
   const handleKeyDown = useCallback(
     (e: React.KeyboardEvent) => {
       if (e.key === 'Escape') {
         e.preventDefault();
-        resetForm();
-        onCancel();
+        handleCancel();
       } else if (e.key === 'Enter' && e.ctrlKey && !readOnly && isFormValid) {
         e.preventDefault();
         handleSave();
       }
     },
-    [onCancel, readOnly, isFormValid, handleSave, resetForm],
-  );
-
-  // Handle backdrop click
-  const handleBackdropClick = useCallback(
-    (e: React.MouseEvent) => {
-      if (e.target === e.currentTarget) {
-        resetForm();
-        onCancel();
-      }
-    },
-    [onCancel, resetForm],
+    [handleCancel, readOnly, isFormValid, handleSave],
   );
 
   // Don't render if not open
@@ -364,21 +358,17 @@ export const CaptionEditor: React.FC<CaptionEditorProps> = ({
   }
 
   return (
-    <div
-      data-testid="caption-editor-backdrop"
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm"
-      onClick={handleBackdropClick}
+    <ModalShell
+      ref={modalRef}
+      ariaLabelledBy={titleId}
+      onRequestClose={handleCancel}
       onKeyDown={handleKeyDown}
-    >
-      <div
-        ref={modalRef}
-        data-testid="caption-editor-modal"
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby={titleId}
-        className="bg-neutral-900 rounded-lg shadow-xl border border-neutral-700 w-full max-w-lg mx-4"
-      >
-        {/* Header */}
+      overlayClassName="bg-black/60 backdrop-blur-sm"
+      overlayTestId="caption-editor-backdrop"
+      testId="caption-editor-modal"
+      widthClassName="max-w-lg"
+      dialogClassName="rounded-lg border border-neutral-700 bg-neutral-900 shadow-xl"
+      header={
         <div className="flex items-center justify-between p-4 border-b border-neutral-700">
           <h2 id={titleId} className="text-lg font-semibold text-white flex items-center gap-2">
             <Type className="w-5 h-5 text-teal-400" />
@@ -386,259 +376,23 @@ export const CaptionEditor: React.FC<CaptionEditorProps> = ({
           </h2>
           <button
             type="button"
-            onClick={() => {
-              resetForm();
-              onCancel();
-            }}
+            onClick={handleCancel}
             className="p-1 rounded hover:bg-neutral-700 text-neutral-400 hover:text-white transition-colors"
             aria-label="Close"
           >
             <X className="w-5 h-5" />
           </button>
         </div>
-
-        {/* Body */}
-        <div className="p-4 space-y-4">
-          {/* Text Input */}
-          <div>
-            <label
-              htmlFor="caption-text"
-              className="block text-sm font-medium text-neutral-300 mb-1"
-            >
-              Caption Text
-            </label>
-            <textarea
-              ref={textInputRef}
-              id="caption-text"
-              aria-label="Caption Text"
-              autoFocus
-              value={formState.text}
-              onChange={handleTextChange}
-              disabled={readOnly}
-              spellCheck
-              rows={3}
-              className={`w-full px-3 py-2 rounded bg-neutral-800 border text-white placeholder-neutral-500
-                focus:outline-none focus:ring-2 focus:ring-teal-500 disabled:opacity-50 disabled:cursor-not-allowed
-                ${errors.text ? 'border-red-500' : 'border-neutral-600'}`}
-              placeholder="Enter caption text..."
-            />
-            <div className="flex items-center justify-between mt-1">
-              <span
-                className={`text-xs ${exceedsRecommended ? 'text-yellow-400' : 'text-neutral-500'}`}
-              >
-                {charCount} characters
-                {exceedsRecommended && ' (exceeds recommended length)'}
-              </span>
-              {errors.text && <span className="text-xs text-red-400">{errors.text}</span>}
-            </div>
-          </div>
-
-          <div className="rounded border border-neutral-700 bg-neutral-900/70 p-3 space-y-2">
-            <div className="grid grid-cols-2 gap-2">
-              <label className="space-y-1">
-                <span className="text-xs font-medium text-neutral-400 flex items-center gap-1">
-                  <Search className="w-3.5 h-3.5" />
-                  Find
-                </span>
-                <input
-                  type="search"
-                  aria-label="Find in caption"
-                  value={searchTerm}
-                  onChange={handleSearchChange}
-                  className="w-full px-2 py-1.5 rounded bg-neutral-800 border border-neutral-600 text-sm text-white placeholder-neutral-500 focus:outline-none focus:ring-2 focus:ring-teal-500"
-                  placeholder="Search"
-                />
-              </label>
-              <label className="space-y-1">
-                <span className="text-xs font-medium text-neutral-400 flex items-center gap-1">
-                  <Replace className="w-3.5 h-3.5" />
-                  Replace
-                </span>
-                <input
-                  type="text"
-                  aria-label="Replace with"
-                  value={replaceTerm}
-                  onChange={handleReplaceChange}
-                  disabled={readOnly}
-                  className="w-full px-2 py-1.5 rounded bg-neutral-800 border border-neutral-600 text-sm text-white placeholder-neutral-500 focus:outline-none focus:ring-2 focus:ring-teal-500 disabled:opacity-50 disabled:cursor-not-allowed"
-                  placeholder="Replacement"
-                />
-              </label>
-            </div>
-            <div className="flex flex-wrap items-center gap-2">
-              <span className="text-xs text-neutral-500 mr-auto" aria-live="polite">
-                {searchTerm.trim()
-                  ? `${textMatches.length} ${textMatches.length === 1 ? 'match' : 'matches'}`
-                  : 'No search'}
-              </span>
-              <button
-                type="button"
-                onClick={handleFindPrevious}
-                disabled={textMatches.length === 0}
-                className="px-2 py-1 text-xs rounded border border-neutral-600 text-neutral-300 hover:bg-neutral-800 disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                Previous
-              </button>
-              <button
-                type="button"
-                onClick={handleFindNext}
-                disabled={textMatches.length === 0}
-                className="px-2 py-1 text-xs rounded border border-neutral-600 text-neutral-300 hover:bg-neutral-800 disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                Next
-              </button>
-              <button
-                type="button"
-                onClick={handleReplaceCurrent}
-                disabled={readOnly || !activeMatch}
-                className="px-2 py-1 text-xs rounded border border-neutral-600 text-neutral-300 hover:bg-neutral-800 disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                Replace
-              </button>
-              <button
-                type="button"
-                onClick={handleReplaceAll}
-                disabled={readOnly || textMatches.length === 0}
-                className="px-2 py-1 text-xs rounded bg-neutral-700 text-neutral-100 hover:bg-neutral-600 disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                All
-              </button>
-            </div>
-          </div>
-
-          {/* Speaker Input */}
-          <div>
-            <label
-              htmlFor="caption-speaker"
-              className="block text-sm font-medium text-neutral-300 mb-1 flex items-center gap-1"
-            >
-              <User className="w-4 h-4" />
-              Speaker
-            </label>
-            <input
-              id="caption-speaker"
-              aria-label="Speaker"
-              type="text"
-              value={formState.speaker}
-              onChange={handleSpeakerChange}
-              disabled={readOnly}
-              className="w-full px-3 py-2 rounded bg-neutral-800 border border-neutral-600 text-white placeholder-neutral-500
-                focus:outline-none focus:ring-2 focus:ring-teal-500 disabled:opacity-50 disabled:cursor-not-allowed"
-              placeholder="Optional speaker name..."
-            />
-          </div>
-
-          {/* Time Inputs */}
-          <div className="grid grid-cols-3 gap-4">
-            {/* Start Time */}
-            <div>
-              <label
-                htmlFor="caption-start"
-                className="block text-sm font-medium text-neutral-300 mb-1 flex items-center gap-1"
-              >
-                <Clock className="w-4 h-4" />
-                Start (s)
-              </label>
-              <input
-                id="caption-start"
-                aria-label="Start time"
-                type="number"
-                role="spinbutton"
-                step="0.1"
-                min="0"
-                value={formState.startSec}
-                onChange={handleStartSecChange}
-                disabled={readOnly}
-                className={`w-full px-3 py-2 rounded bg-neutral-800 border text-white
-                  focus:outline-none focus:ring-2 focus:ring-teal-500 disabled:opacity-50 disabled:cursor-not-allowed
-                  ${errors.startSec ? 'border-red-500' : 'border-neutral-600'}`}
-              />
-              {errors.startSec && (
-                <span className="text-xs text-red-400 mt-1 block">{errors.startSec}</span>
-              )}
-            </div>
-
-            {/* End Time */}
-            <div>
-              <label
-                htmlFor="caption-end"
-                className="block text-sm font-medium text-neutral-300 mb-1 flex items-center gap-1"
-              >
-                <Clock className="w-4 h-4" />
-                End (s)
-              </label>
-              <input
-                id="caption-end"
-                aria-label="End time"
-                type="number"
-                role="spinbutton"
-                step="0.1"
-                min="0"
-                value={formState.endSec}
-                onChange={handleEndSecChange}
-                disabled={readOnly}
-                className={`w-full px-3 py-2 rounded bg-neutral-800 border text-white
-                  focus:outline-none focus:ring-2 focus:ring-teal-500 disabled:opacity-50 disabled:cursor-not-allowed
-                  ${errors.endSec ? 'border-red-500' : 'border-neutral-600'}`}
-              />
-              {errors.endSec && (
-                <span className="text-xs text-red-400 mt-1 block">{errors.endSec}</span>
-              )}
-            </div>
-
-            {/* Duration (read-only) */}
-            <div>
-              <label className="block text-sm font-medium text-neutral-300 mb-1">Duration</label>
-              <div className="px-3 py-2 rounded bg-neutral-800/50 border border-neutral-700 text-neutral-400">
-                {duration}s
-              </div>
-            </div>
-          </div>
-
-          {/* Time Range Error */}
-          {errors.timeRange && (
-            <div className="flex items-center gap-2 text-red-400 text-sm">
-              <AlertTriangle className="w-4 h-4" />
-              {errors.timeRange}
-            </div>
-          )}
-
-          {/* Delete Confirmation */}
-          {showDeleteConfirm && (
-            <div className="p-3 rounded bg-red-900/30 border border-red-700">
-              <p className="text-sm text-red-200 mb-3">
-                Are you sure you want to delete this caption? This action cannot be undone.
-              </p>
-              <div className="flex gap-2">
-                <button
-                  type="button"
-                  onClick={handleDelete}
-                  className="px-3 py-1.5 text-sm rounded bg-red-600 text-white hover:bg-red-500 transition-colors"
-                >
-                  Confirm Delete
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setShowDeleteConfirm(false)}
-                  className="px-3 py-1.5 text-sm rounded border border-neutral-600 text-neutral-300 hover:bg-neutral-800 transition-colors"
-                >
-                  No, Keep It
-                </button>
-              </div>
-            </div>
-          )}
-        </div>
-
-        {/* Footer */}
-        <div className="flex items-center justify-between p-4 border-t border-neutral-700">
+      }
+      footer={
+        <div className="flex items-center justify-between border-t border-neutral-700 p-4">
           <div>
             {onDelete && !showDeleteConfirm && (
               <button
                 type="button"
                 onClick={() => setShowDeleteConfirm(true)}
                 disabled={readOnly}
-                className="flex items-center gap-2 px-3 py-2 text-sm rounded border border-red-700 text-red-400
-                  hover:bg-red-900/30 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                className="flex items-center gap-2 rounded border border-red-700 px-3 py-2 text-sm text-red-400 transition-colors hover:bg-red-900/30 disabled:cursor-not-allowed disabled:opacity-50"
               >
                 <Trash2 className="w-4 h-4" />
                 Delete
@@ -649,12 +403,8 @@ export const CaptionEditor: React.FC<CaptionEditorProps> = ({
           <div className="flex gap-2">
             <button
               type="button"
-              onClick={() => {
-                resetForm();
-                onCancel();
-              }}
-              className="px-4 py-2 text-sm rounded border border-neutral-600 text-neutral-300
-                hover:bg-neutral-800 transition-colors"
+              onClick={handleCancel}
+              className="rounded border border-neutral-600 px-4 py-2 text-sm text-neutral-300 transition-colors hover:bg-neutral-800"
             >
               Cancel
             </button>
@@ -662,8 +412,7 @@ export const CaptionEditor: React.FC<CaptionEditorProps> = ({
               type="button"
               onClick={handleSave}
               disabled={readOnly || !formState.text.trim() || isSaving}
-              className="px-4 py-2 text-sm rounded bg-teal-600 text-white hover:bg-teal-500
-                disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center gap-2"
+              className="flex items-center gap-2 rounded bg-teal-600 px-4 py-2 text-sm text-white transition-colors hover:bg-teal-500 disabled:cursor-not-allowed disabled:opacity-50"
             >
               {isSaving ? (
                 <>
@@ -676,8 +425,236 @@ export const CaptionEditor: React.FC<CaptionEditorProps> = ({
             </button>
           </div>
         </div>
+      }
+    >
+      <div className="space-y-4 p-4">
+        {/* Text Input */}
+        <div>
+          <label htmlFor="caption-text" className="block text-sm font-medium text-neutral-300 mb-1">
+            Caption Text
+          </label>
+          <textarea
+            ref={textInputRef}
+            id="caption-text"
+            aria-label="Caption Text"
+            autoFocus
+            value={formState.text}
+            onChange={handleTextChange}
+            disabled={readOnly}
+            spellCheck
+            rows={3}
+            className={`w-full px-3 py-2 rounded bg-neutral-800 border text-white placeholder-neutral-500
+                focus:outline-none focus:ring-2 focus:ring-teal-500 disabled:opacity-50 disabled:cursor-not-allowed
+                ${errors.text ? 'border-red-500' : 'border-neutral-600'}`}
+            placeholder="Enter caption text..."
+          />
+          <div className="flex items-center justify-between mt-1">
+            <span
+              className={`text-xs ${exceedsRecommended ? 'text-yellow-400' : 'text-neutral-500'}`}
+            >
+              {charCount} characters
+              {exceedsRecommended && ' (exceeds recommended length)'}
+            </span>
+            {errors.text && <span className="text-xs text-red-400">{errors.text}</span>}
+          </div>
+        </div>
+
+        <div className="rounded border border-neutral-700 bg-neutral-900/70 p-3 space-y-2">
+          <div className="grid grid-cols-2 gap-2">
+            <label className="space-y-1">
+              <span className="text-xs font-medium text-neutral-400 flex items-center gap-1">
+                <Search className="w-3.5 h-3.5" />
+                Find
+              </span>
+              <input
+                type="search"
+                aria-label="Find in caption"
+                value={searchTerm}
+                onChange={handleSearchChange}
+                className="w-full px-2 py-1.5 rounded bg-neutral-800 border border-neutral-600 text-sm text-white placeholder-neutral-500 focus:outline-none focus:ring-2 focus:ring-teal-500"
+                placeholder="Search"
+              />
+            </label>
+            <label className="space-y-1">
+              <span className="text-xs font-medium text-neutral-400 flex items-center gap-1">
+                <Replace className="w-3.5 h-3.5" />
+                Replace
+              </span>
+              <input
+                type="text"
+                aria-label="Replace with"
+                value={replaceTerm}
+                onChange={handleReplaceChange}
+                disabled={readOnly}
+                className="w-full px-2 py-1.5 rounded bg-neutral-800 border border-neutral-600 text-sm text-white placeholder-neutral-500 focus:outline-none focus:ring-2 focus:ring-teal-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                placeholder="Replacement"
+              />
+            </label>
+          </div>
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="text-xs text-neutral-500 mr-auto" aria-live="polite">
+              {searchTerm.trim()
+                ? `${textMatches.length} ${textMatches.length === 1 ? 'match' : 'matches'}`
+                : 'No search'}
+            </span>
+            <button
+              type="button"
+              onClick={handleFindPrevious}
+              disabled={textMatches.length === 0}
+              className="px-2 py-1 text-xs rounded border border-neutral-600 text-neutral-300 hover:bg-neutral-800 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              Previous
+            </button>
+            <button
+              type="button"
+              onClick={handleFindNext}
+              disabled={textMatches.length === 0}
+              className="px-2 py-1 text-xs rounded border border-neutral-600 text-neutral-300 hover:bg-neutral-800 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              Next
+            </button>
+            <button
+              type="button"
+              onClick={handleReplaceCurrent}
+              disabled={readOnly || !activeMatch}
+              className="px-2 py-1 text-xs rounded border border-neutral-600 text-neutral-300 hover:bg-neutral-800 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              Replace
+            </button>
+            <button
+              type="button"
+              onClick={handleReplaceAll}
+              disabled={readOnly || textMatches.length === 0}
+              className="px-2 py-1 text-xs rounded bg-neutral-700 text-neutral-100 hover:bg-neutral-600 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              All
+            </button>
+          </div>
+        </div>
+
+        {/* Speaker Input */}
+        <div>
+          <label
+            htmlFor="caption-speaker"
+            className="block text-sm font-medium text-neutral-300 mb-1 flex items-center gap-1"
+          >
+            <User className="w-4 h-4" />
+            Speaker
+          </label>
+          <input
+            id="caption-speaker"
+            aria-label="Speaker"
+            type="text"
+            value={formState.speaker}
+            onChange={handleSpeakerChange}
+            disabled={readOnly}
+            className="w-full px-3 py-2 rounded bg-neutral-800 border border-neutral-600 text-white placeholder-neutral-500
+                focus:outline-none focus:ring-2 focus:ring-teal-500 disabled:opacity-50 disabled:cursor-not-allowed"
+            placeholder="Optional speaker name..."
+          />
+        </div>
+
+        {/* Time Inputs */}
+        <div className="grid grid-cols-3 gap-4">
+          {/* Start Time */}
+          <div>
+            <label
+              htmlFor="caption-start"
+              className="block text-sm font-medium text-neutral-300 mb-1 flex items-center gap-1"
+            >
+              <Clock className="w-4 h-4" />
+              Start (s)
+            </label>
+            <input
+              id="caption-start"
+              aria-label="Start time"
+              type="number"
+              role="spinbutton"
+              step="0.1"
+              min="0"
+              value={formState.startSec}
+              onChange={handleStartSecChange}
+              disabled={readOnly}
+              className={`w-full px-3 py-2 rounded bg-neutral-800 border text-white
+                  focus:outline-none focus:ring-2 focus:ring-teal-500 disabled:opacity-50 disabled:cursor-not-allowed
+                  ${errors.startSec ? 'border-red-500' : 'border-neutral-600'}`}
+            />
+            {errors.startSec && (
+              <span className="text-xs text-red-400 mt-1 block">{errors.startSec}</span>
+            )}
+          </div>
+
+          {/* End Time */}
+          <div>
+            <label
+              htmlFor="caption-end"
+              className="block text-sm font-medium text-neutral-300 mb-1 flex items-center gap-1"
+            >
+              <Clock className="w-4 h-4" />
+              End (s)
+            </label>
+            <input
+              id="caption-end"
+              aria-label="End time"
+              type="number"
+              role="spinbutton"
+              step="0.1"
+              min="0"
+              value={formState.endSec}
+              onChange={handleEndSecChange}
+              disabled={readOnly}
+              className={`w-full px-3 py-2 rounded bg-neutral-800 border text-white
+                  focus:outline-none focus:ring-2 focus:ring-teal-500 disabled:opacity-50 disabled:cursor-not-allowed
+                  ${errors.endSec ? 'border-red-500' : 'border-neutral-600'}`}
+            />
+            {errors.endSec && (
+              <span className="text-xs text-red-400 mt-1 block">{errors.endSec}</span>
+            )}
+          </div>
+
+          {/* Duration (read-only) */}
+          <div>
+            <label className="block text-sm font-medium text-neutral-300 mb-1">Duration</label>
+            <div className="px-3 py-2 rounded bg-neutral-800/50 border border-neutral-700 text-neutral-400">
+              {duration}s
+            </div>
+          </div>
+        </div>
+
+        {/* Time Range Error */}
+        {errors.timeRange && (
+          <div className="flex items-center gap-2 text-red-400 text-sm">
+            <AlertTriangle className="w-4 h-4" />
+            {errors.timeRange}
+          </div>
+        )}
+
+        {/* Delete Confirmation */}
+        {showDeleteConfirm && (
+          <div className="p-3 rounded bg-red-900/30 border border-red-700">
+            <p className="text-sm text-red-200 mb-3">
+              Are you sure you want to delete this caption? This action cannot be undone.
+            </p>
+            <div className="flex gap-2">
+              <button
+                type="button"
+                onClick={handleDelete}
+                className="px-3 py-1.5 text-sm rounded bg-red-600 text-white hover:bg-red-500 transition-colors"
+              >
+                Confirm Delete
+              </button>
+              <button
+                type="button"
+                onClick={() => setShowDeleteConfirm(false)}
+                className="px-3 py-1.5 text-sm rounded border border-neutral-600 text-neutral-300 hover:bg-neutral-800 transition-colors"
+              >
+                No, Keep It
+              </button>
+            </div>
+          </div>
+        )}
       </div>
-    </div>
+    </ModalShell>
   );
 };
 
