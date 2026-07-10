@@ -8,9 +8,10 @@
  * - Error message for invalid drop reasons
  */
 
-import { memo } from 'react';
+import { memo, useLayoutEffect, useRef, useState } from 'react';
 import { formatDuration } from '@/utils/formatters';
 import type { DropValidity } from '@/utils/dropValidity';
+import { getClampedTooltipPosition } from './dropIndicatorPosition';
 
 // =============================================================================
 // Types
@@ -44,6 +45,40 @@ export const DropIndicator = memo(function DropIndicator({
   showErrorMessage = true,
 }: DropIndicatorProps): JSX.Element {
   const isValid = validity.isValid;
+  const containerRef = useRef<HTMLDivElement>(null);
+  const tooltipRef = useRef<HTMLDivElement>(null);
+  const [tooltipPosition, setTooltipPosition] = useState(() => Math.max(0, position));
+
+  useLayoutEffect(() => {
+    const container = containerRef.current;
+    const tooltip = tooltipRef.current;
+    if (!showTimeTooltip || !container || !tooltip) {
+      return;
+    }
+
+    const updateTooltipPosition = () => {
+      const nextPosition = getClampedTooltipPosition(
+        position,
+        container.getBoundingClientRect().width,
+        tooltip.getBoundingClientRect().width,
+      );
+      setTooltipPosition((currentPosition) =>
+        currentPosition === nextPosition ? currentPosition : nextPosition,
+      );
+    };
+
+    updateTooltipPosition();
+    const resizeObserver =
+      typeof ResizeObserver === 'undefined' ? null : new ResizeObserver(updateTooltipPosition);
+    resizeObserver?.observe(container);
+    resizeObserver?.observe(tooltip);
+    window.addEventListener('resize', updateTooltipPosition);
+
+    return () => {
+      resizeObserver?.disconnect();
+      window.removeEventListener('resize', updateTooltipPosition);
+    };
+  }, [position, showTimeTooltip]);
 
   // Color classes based on validity
   const lineColorClass = isValid ? 'bg-blue-500' : 'bg-red-500';
@@ -54,6 +89,7 @@ export const DropIndicator = memo(function DropIndicator({
 
   return (
     <div
+      ref={containerRef}
       className="pointer-events-none absolute inset-x-0 top-0 z-50"
       style={{ height: `${trackHeight}px` }}
     >
@@ -98,8 +134,10 @@ export const DropIndicator = memo(function DropIndicator({
       {/* Clamp tooltips to the full track instead of the zero-width indicator line. */}
       {showTimeTooltip && (
         <div
+          ref={tooltipRef}
           data-testid="drop-indicator-time"
-          className={`absolute -top-8 left-1/2 box-border max-w-full -translate-x-1/2 overflow-hidden text-ellipsis whitespace-nowrap rounded px-2 py-1 font-mono text-xs text-white ${tooltipBgClass}`}
+          className={`absolute -top-8 box-border max-w-full -translate-x-1/2 overflow-hidden text-ellipsis whitespace-nowrap rounded px-2 py-1 font-mono text-xs text-white ${tooltipBgClass}`}
+          style={{ left: `${tooltipPosition}px` }}
         >
           {formatDuration(time)}
         </div>

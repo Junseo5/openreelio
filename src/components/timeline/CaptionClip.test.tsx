@@ -159,6 +159,21 @@ describe('CaptionClip', () => {
       );
     });
 
+    it('uses onClick as the Enter key fallback when no edit handler is provided', () => {
+      const onClick = vi.fn();
+      const caption = createTestCaption({ id: 'keyboard_caption' });
+
+      render(<CaptionClip caption={caption} zoom={100} selected={false} onClick={onClick} />);
+
+      fireEvent.keyDown(screen.getByTestId('caption-clip-keyboard_caption'), { key: 'Enter' });
+
+      expect(onClick).toHaveBeenCalledWith('keyboard_caption', {
+        ctrlKey: false,
+        shiftKey: false,
+        metaKey: false,
+      });
+    });
+
     it('passes modifier keys correctly', () => {
       const onClick = vi.fn();
       const caption = createTestCaption();
@@ -177,8 +192,9 @@ describe('CaptionClip', () => {
       );
     });
 
-    it('does not call onClick when disabled', () => {
+    it('does not respond to pointer or keyboard activation when disabled', () => {
       const onClick = vi.fn();
+      const onDoubleClick = vi.fn();
       const caption = createTestCaption();
 
       render(
@@ -187,14 +203,18 @@ describe('CaptionClip', () => {
           zoom={100}
           selected={false}
           onClick={onClick}
+          onDoubleClick={onDoubleClick}
           disabled={true}
         />,
       );
 
       const clipElement = screen.getByTestId('caption-clip-caption_001');
       fireEvent.click(clipElement);
+      fireEvent.keyDown(clipElement, { key: ' ' });
+      fireEvent.keyDown(clipElement, { key: 'Enter' });
 
       expect(onClick).not.toHaveBeenCalled();
+      expect(onDoubleClick).not.toHaveBeenCalled();
       expect(clipElement).toHaveAttribute('aria-disabled', 'true');
       expect(clipElement).toHaveAttribute('tabindex', '-1');
     });

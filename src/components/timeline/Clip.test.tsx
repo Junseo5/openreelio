@@ -332,6 +332,29 @@ describe('Clip', () => {
       expect(onRazorClick).toHaveBeenCalledTimes(1);
       expect(onClick).not.toHaveBeenCalled();
     });
+
+    it('should ignore selection and activation keys when razor tool is active', () => {
+      useEditorToolStore.setState({ activeTool: 'razor' });
+
+      const onClick = vi.fn();
+      const onDoubleClick = vi.fn();
+      render(
+        <Clip
+          clip={mockClip}
+          zoom={100}
+          selected={false}
+          onClick={onClick}
+          onDoubleClick={onDoubleClick}
+        />,
+      );
+
+      const clip = screen.getByRole('button', { name: 'Timeline clip: Test Clip' });
+      fireEvent.keyDown(clip, { key: ' ' });
+      fireEvent.keyDown(clip, { key: 'Enter' });
+
+      expect(onClick).not.toHaveBeenCalled();
+      expect(onDoubleClick).not.toHaveBeenCalled();
+    });
   });
 
   describe('audio editing controls', () => {

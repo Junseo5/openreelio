@@ -5,6 +5,7 @@
 import { describe, it, expect } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import { DropIndicator } from './DropIndicator';
+import { getClampedTooltipPosition } from './dropIndicatorPosition';
 import type { DropValidity } from '@/utils/dropValidity';
 
 // =============================================================================
@@ -31,6 +32,21 @@ const invalidDropLocked: DropValidity = {
 // =============================================================================
 
 describe('DropIndicator', () => {
+  describe('tooltip positioning', () => {
+    it('should follow the drop position when there is room', () => {
+      expect(getClampedTooltipPosition(200, 500, 80)).toBe(200);
+    });
+
+    it('should keep the tooltip inside either track edge', () => {
+      expect(getClampedTooltipPosition(10, 500, 80)).toBe(40);
+      expect(getClampedTooltipPosition(490, 500, 80)).toBe(460);
+    });
+
+    it('should center a tooltip that fills a narrow track', () => {
+      expect(getClampedTooltipPosition(20, 300, 500)).toBe(150);
+    });
+  });
+
   describe('rendering', () => {
     it('should render the indicator element', () => {
       render(<DropIndicator position={100} validity={validDrop} time={5.0} />);

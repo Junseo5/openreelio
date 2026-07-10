@@ -330,7 +330,7 @@ export function Clip({
       : (thumbnailConfig?.asset.name ?? waveformConfig?.displayLabel ?? clip.assetId));
 
   const handleKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
-    if (event.target !== event.currentTarget || disabled) {
+    if (event.target !== event.currentTarget || disabled || isRazorToolActive) {
       return;
     }
 
