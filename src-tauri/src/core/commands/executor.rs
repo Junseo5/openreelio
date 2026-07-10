@@ -135,6 +135,7 @@ impl CommandExecutor {
         // Capture command metadata for persistence.
         // NOTE: ops.jsonl must contain replayable operations, not just the input command payload.
         let type_name = command.type_name().to_string();
+        let op_kind = Self::type_name_to_op_kind(&type_name)?;
         let command_json = command.to_json();
         let prev_op_id = state.last_op_id.clone();
 
@@ -151,7 +152,6 @@ impl CommandExecutor {
         // Build replayable operation payload AFTER executing.
         // Many commands generate IDs at runtime (clips/tracks/sequences), so the operation
         // payload must include the realized entities/fields.
-        let op_kind = Self::type_name_to_op_kind(&type_name);
         let op_payload = Self::build_operation_payload(
             &type_name,
             op_kind.clone(),
@@ -1405,6 +1405,14 @@ impl CommandExecutor {
                     payload.insert("transform".to_string(), to_value(&clip.transform)?);
                 }
 
+                if type_name == "SetClipMotionKeyframes" {
+                    payload.remove("keyframes");
+                    payload.insert(
+                        "motionKeyframes".to_string(),
+                        to_value(&clip.motion_keyframes)?,
+                    );
+                }
+
                 if type_name == "SetClipBlendMode" {
                     payload.insert("blendMode".to_string(), to_value(&clip.blend_mode)?);
                 }
@@ -2037,8 +2045,8 @@ impl CommandExecutor {
     }
 
     /// Converts command type name to OpKind
-    fn type_name_to_op_kind(type_name: &str) -> OpKind {
-        match type_name {
+    fn type_name_to_op_kind(type_name: &str) -> CoreResult<OpKind> {
+        let op_kind = match type_name {
             "InsertClip" | "AddClip" => OpKind::ClipAdd,
             "InsertEdit" | "OverwriteEdit" | "RippleDelete" | "CloseGap" | "CloseAllGaps"
             | "Lift" | "ExtractEdit" | "InsertMedia" => OpKind::Batch,
@@ -2047,6 +2055,7 @@ impl CommandExecutor {
             "TrimClip" => OpKind::ClipTrim,
             "SetClipMute"
             | "SetClipTransform"
+            | "SetClipMotionKeyframes"
             | "SetClipAudio"
             | "SetClipSpeed"
             | "SetClipSlowMotionInterpolation"
@@ -2111,8 +2120,14 @@ impl CommandExecutor {
             "RenameFile" => OpKind::FileRename,
             "MoveFile" => OpKind::FileMove,
             "DeleteFile" => OpKind::FileDelete,
-            _ => OpKind::Batch, // Default to batch for unknown types
-        }
+            _ => {
+                return Err(CoreError::NotSupported(format!(
+                    "Unregistered command type: {type_name}"
+                )))
+            }
+        };
+
+        Ok(op_kind)
     }
 
     /// Returns summary info for all entries in the undo stack (oldest first)
@@ -2247,14 +2262,16 @@ mod tests {
         ImportGeneratedCaptionsCommand, InsertClipCommand, InsertEditCommand, LiftCommand,
         LinkClipsCommand, MoveClipCommand, OverwriteEditCommand, RippleDeleteCommand,
         SetAudioFadeInCommand, SetAudioFadeOutCommand, SetClipBlendModeCommand,
-        SetMasterVolumeCommand, SetTrackBlendModeCommand, SplitClipCommand, StateChange,
-        TrimClipCommand, UngroupClipsCommand, UnlinkClipsCommand, UnnestCompoundClipCommand,
+        SetClipMotionKeyframesCommand, SetMasterVolumeCommand, SetTrackBlendModeCommand,
+        SplitClipCommand, StateChange, TrimClipCommand, UngroupClipsCommand, UnlinkClipsCommand,
+        UnnestCompoundClipCommand,
     };
     use crate::core::effects::{EffectType, ParamValue};
     use crate::core::masks::{MaskShape, RectMask};
     use crate::core::project::{OpKind, Operation, OpsLog, ProjectMeta, ProjectState};
     use crate::core::timeline::{
-        BlendMode, Clip, FadeType, Sequence, SequenceFormat, Track, TrackKind,
+        BlendMode, Clip, FadeType, KeyframeInterpolation, Sequence, SequenceFormat, Track,
+        TrackKind, Transform, TransformKeyframe,
     };
     use tempfile::TempDir;
 
@@ -2337,6 +2354,32 @@ mod tests {
 
         fn to_json(&self) -> serde_json::Value {
             serde_json::json!({ "assetId": self.asset_id })
+        }
+    }
+
+    struct TestUnknownCommand {
+        asset: Asset,
+    }
+
+    impl Command for TestUnknownCommand {
+        fn execute(&mut self, state: &mut ProjectState) -> CoreResult<CommandResult> {
+            state
+                .assets
+                .insert(self.asset.id.clone(), self.asset.clone());
+            Ok(CommandResult::new(&ulid::Ulid::new().to_string()))
+        }
+
+        fn undo(&self, state: &mut ProjectState) -> CoreResult<()> {
+            state.assets.remove(&self.asset.id);
+            Ok(())
+        }
+
+        fn type_name(&self) -> &'static str {
+            "UnknownCommand"
+        }
+
+        fn to_json(&self) -> serde_json::Value {
+            serde_json::json!({ "assetId": self.asset.id })
         }
     }
 
@@ -3711,91 +3754,138 @@ mod tests {
 
     #[test]
     fn test_type_name_to_op_kind() {
+        let assert_kind = |type_name, expected| {
+            assert_eq!(
+                CommandExecutor::type_name_to_op_kind(type_name).unwrap(),
+                expected
+            );
+        };
+
+        assert_kind("InsertClip", OpKind::ClipAdd);
+        assert_kind("InsertEdit", OpKind::Batch);
+        assert_kind("OverwriteEdit", OpKind::Batch);
+        assert_kind("RippleDelete", OpKind::Batch);
+        assert_kind("CloseGap", OpKind::Batch);
+        assert_kind("CloseAllGaps", OpKind::Batch);
+        assert_kind("Lift", OpKind::Batch);
+        assert_kind("ExtractEdit", OpKind::Batch);
+        assert_kind("ImportGeneratedCaptions", OpKind::Batch);
+        assert_kind("SplitClip", OpKind::ClipSplit);
+        assert_kind("ImportAsset", OpKind::AssetImport);
+        assert_kind("AddAudioKeyframe", OpKind::ClipUpdate);
+        assert_kind("SetAudioFadeIn", OpKind::ClipUpdate);
+        assert_kind("SetClipMotionKeyframes", OpKind::ClipUpdate);
+        assert_kind("SetMasterVolume", OpKind::SequenceUpdate);
+        assert_kind("CreateCompoundClip", OpKind::CompoundClipCreate);
+        assert_kind("UnnestCompoundClip", OpKind::CompoundClipUnnest);
+        assert_kind("GroupClips", OpKind::ClipGroup);
+        assert_kind("UngroupClips", OpKind::ClipUngroup);
+        assert_kind("LinkClips", OpKind::ClipLink);
+        assert_kind("UnlinkClips", OpKind::ClipUnlink);
+        assert_kind("CreateAdjustmentLayer", OpKind::ClipAdd);
+
+        let error = CommandExecutor::type_name_to_op_kind("UnknownCommand").unwrap_err();
         assert_eq!(
-            CommandExecutor::type_name_to_op_kind("InsertClip"),
-            OpKind::ClipAdd
+            error.to_string(),
+            "Not supported: Unregistered command type: UnknownCommand"
         );
+    }
+
+    #[test]
+    fn test_executor_rejects_unregistered_command_before_state_mutation() {
+        let mut executor = CommandExecutor::new();
+        let mut state = ProjectState::new("Test");
+        let asset = Asset::new_video("unknown.mp4", "/unknown.mp4", VideoInfo::default());
+
+        let error = executor
+            .execute(Box::new(TestUnknownCommand { asset }), &mut state)
+            .unwrap_err();
+
         assert_eq!(
-            CommandExecutor::type_name_to_op_kind("InsertEdit"),
-            OpKind::Batch
+            error.to_string(),
+            "Not supported: Unregistered command type: UnknownCommand"
         );
+        assert!(state.assets.is_empty());
+        assert_eq!(executor.undo_count(), 0);
+        assert!(!state.is_dirty);
+    }
+
+    #[test]
+    fn test_executor_persists_and_replays_realized_motion_keyframes() {
+        let temp_dir = TempDir::new().unwrap();
+        let ops_path = temp_dir.path().join("ops.jsonl");
+        let ops_log = OpsLog::new(&ops_path);
+        let mut state = ProjectState::new_empty("Test");
+        let (sequence_id, track_id, clip_ids) =
+            seed_replayable_video_track_with_clips(&ops_log, &mut state, &[(0.0, 5.0)]);
+        let clip_id = &clip_ids[0];
+        let mut executor = CommandExecutor::with_ops_log(ops_log);
+
+        let mut late_transform = Transform::default();
+        late_transform.position.x = 2.0;
+        late_transform.scale.x = 0.0;
+        let keyframes = vec![
+            TransformKeyframe {
+                time_offset: 4.0,
+                transform: late_transform,
+                interpolation: KeyframeInterpolation::Hold,
+            },
+            TransformKeyframe {
+                time_offset: -1.0,
+                transform: Transform::default(),
+                interpolation: KeyframeInterpolation::Linear,
+            },
+            TransformKeyframe {
+                time_offset: 0.0,
+                transform: Transform::default(),
+                interpolation: KeyframeInterpolation::Linear,
+            },
+        ];
+
+        executor
+            .execute(
+                Box::new(SetClipMotionKeyframesCommand::new(
+                    &sequence_id,
+                    &track_id,
+                    clip_id,
+                    keyframes,
+                )),
+                &mut state,
+            )
+            .unwrap();
+
+        let realized_keyframes = state.sequences[&sequence_id].tracks[0].clips[0]
+            .motion_keyframes
+            .clone();
+        assert_eq!(realized_keyframes.len(), 2);
+        assert_eq!(realized_keyframes[0].time_offset, 0.0);
+        assert_eq!(realized_keyframes[1].time_offset, 4.0);
+        assert_eq!(realized_keyframes[1].transform.position.x, 1.0);
+        assert_eq!(realized_keyframes[1].transform.scale.x, 0.01);
+
+        executor.undo(&mut state).unwrap();
+        assert!(state.sequences[&sequence_id].tracks[0].clips[0]
+            .motion_keyframes
+            .is_empty());
+        executor.redo(&mut state).unwrap();
         assert_eq!(
-            CommandExecutor::type_name_to_op_kind("OverwriteEdit"),
-            OpKind::Batch
+            state.sequences[&sequence_id].tracks[0].clips[0].motion_keyframes,
+            realized_keyframes
         );
-        assert_eq!(
-            CommandExecutor::type_name_to_op_kind("RippleDelete"),
-            OpKind::Batch
-        );
-        assert_eq!(
-            CommandExecutor::type_name_to_op_kind("CloseGap"),
-            OpKind::Batch
-        );
-        assert_eq!(
-            CommandExecutor::type_name_to_op_kind("CloseAllGaps"),
-            OpKind::Batch
-        );
-        assert_eq!(CommandExecutor::type_name_to_op_kind("Lift"), OpKind::Batch);
-        assert_eq!(
-            CommandExecutor::type_name_to_op_kind("ExtractEdit"),
-            OpKind::Batch
-        );
-        assert_eq!(
-            CommandExecutor::type_name_to_op_kind("ImportGeneratedCaptions"),
-            OpKind::Batch
-        );
-        assert_eq!(
-            CommandExecutor::type_name_to_op_kind("SplitClip"),
-            OpKind::ClipSplit
-        );
-        assert_eq!(
-            CommandExecutor::type_name_to_op_kind("ImportAsset"),
-            OpKind::AssetImport
-        );
-        assert_eq!(
-            CommandExecutor::type_name_to_op_kind("AddAudioKeyframe"),
-            OpKind::ClipUpdate
-        );
-        assert_eq!(
-            CommandExecutor::type_name_to_op_kind("SetAudioFadeIn"),
-            OpKind::ClipUpdate
-        );
-        assert_eq!(
-            CommandExecutor::type_name_to_op_kind("SetMasterVolume"),
-            OpKind::SequenceUpdate
-        );
-        assert_eq!(
-            CommandExecutor::type_name_to_op_kind("CreateCompoundClip"),
-            OpKind::CompoundClipCreate
-        );
-        assert_eq!(
-            CommandExecutor::type_name_to_op_kind("UnnestCompoundClip"),
-            OpKind::CompoundClipUnnest
-        );
-        assert_eq!(
-            CommandExecutor::type_name_to_op_kind("GroupClips"),
-            OpKind::ClipGroup
-        );
-        assert_eq!(
-            CommandExecutor::type_name_to_op_kind("UngroupClips"),
-            OpKind::ClipUngroup
-        );
-        assert_eq!(
-            CommandExecutor::type_name_to_op_kind("LinkClips"),
-            OpKind::ClipLink
-        );
-        assert_eq!(
-            CommandExecutor::type_name_to_op_kind("UnlinkClips"),
-            OpKind::ClipUnlink
-        );
-        assert_eq!(
-            CommandExecutor::type_name_to_op_kind("CreateAdjustmentLayer"),
-            OpKind::ClipAdd
-        );
-        assert_eq!(
-            CommandExecutor::type_name_to_op_kind("UnknownCommand"),
-            OpKind::Batch
-        );
+
+        let read = OpsLog::new(&ops_path).read_all().unwrap();
+        let persisted = read.operations.last().unwrap();
+        assert_eq!(persisted.kind, OpKind::ClipUpdate);
+        assert!(persisted.payload.get("keyframes").is_none());
+        let persisted_keyframes: Vec<TransformKeyframe> =
+            serde_json::from_value(persisted.payload["motionKeyframes"].clone()).unwrap();
+        assert_eq!(persisted_keyframes, realized_keyframes);
+
+        let replayed =
+            ProjectState::from_operations(read.operations, ProjectMeta::new("Replay")).unwrap();
+        let replayed_keyframes =
+            &replayed.sequences[&sequence_id].tracks[0].clips[0].motion_keyframes;
+        assert_eq!(replayed_keyframes, &realized_keyframes);
     }
 
     // =========================================================================
