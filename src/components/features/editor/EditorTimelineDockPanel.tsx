@@ -41,9 +41,9 @@ export function EditorTimelineDockPanel({
   audioMixerProps,
 }: EditorTimelineDockPanelProps): JSX.Element {
   return (
-    <div className="h-full min-h-0 p-3">
-      <section className="flex h-full flex-col overflow-hidden rounded-xl border border-editor-border bg-editor-panel">
-        <div className="flex items-center justify-between border-b border-editor-border px-3 py-2">
+    <div className="h-full min-h-0 min-w-0 p-3">
+      <section className="flex h-full min-h-0 min-w-0 flex-col overflow-hidden rounded-xl border border-editor-border bg-editor-panel">
+        <div className="flex min-w-0 shrink-0 items-center justify-between border-b border-editor-border px-3 py-2">
           <h2 className="text-xs font-semibold uppercase tracking-wider text-editor-text-muted">
             Timeline
           </h2>
@@ -64,7 +64,7 @@ export function EditorTimelineDockPanel({
         </div>
 
         {sequenceNavigationStack.length > 0 && (
-          <div className="flex items-center gap-1 border-b border-gray-700 bg-gray-800 px-3 py-1 text-xs text-gray-300">
+          <div className="flex min-w-0 shrink-0 items-center gap-1 overflow-x-auto border-b border-gray-700 bg-gray-800 px-3 py-1 text-xs text-gray-300">
             <button
               className="hover:text-white transition-colors"
               onClick={onPopSequence}
@@ -76,17 +76,19 @@ export function EditorTimelineDockPanel({
             {sequenceNavigationStack.map((seqId) => {
               const parentSequence = sequences.get(seqId);
               return (
-                <span key={seqId} className="text-gray-400">
+                <span key={seqId} className="shrink-0 text-gray-400">
                   {parentSequence?.name ?? seqId}
                   <span className="mx-1 text-gray-500">/</span>
                 </span>
               );
             })}
-            <span className="font-medium text-white">{sequence?.name ?? 'Inner Sequence'}</span>
+            <span className="min-w-0 truncate font-medium text-white">
+              {sequence?.name ?? 'Inner Sequence'}
+            </span>
           </div>
         )}
 
-        <div className="min-h-0 flex-1">
+        <div className="min-h-0 min-w-0 flex-1">
           <TimelineErrorBoundary onError={(error) => logger.error('Timeline error', { error })}>
             <Timeline {...timelineProps} />
           </TimelineErrorBoundary>
@@ -94,11 +96,15 @@ export function EditorTimelineDockPanel({
 
         {showMixer && (
           <div
-            className="shrink-0 border-t border-editor-border bg-editor-sidebar"
+            className="min-w-0 shrink-0 overflow-hidden border-t border-editor-border bg-editor-sidebar"
             style={{ height: '220px' }}
           >
             <Suspense fallback={BOTTOM_PANEL_LOADING_FALLBACK}>
-              <AudioMixerPanelLazy {...audioMixerProps} compact className="h-full" />
+              <AudioMixerPanelLazy
+                {...audioMixerProps}
+                compact
+                className="h-full min-h-0 min-w-0"
+              />
             </Suspense>
           </div>
         )}

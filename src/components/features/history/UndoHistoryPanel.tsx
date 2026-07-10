@@ -80,14 +80,14 @@ const HistoryItem = memo(function HistoryItem({
       tabIndex={readOnly ? -1 : 0}
       onClick={handleClick}
       onKeyDown={handleKeyDown}
-      className={`flex items-center gap-2 px-3 py-1.5 text-xs transition-colors
+      className={`flex min-w-0 items-center gap-2 px-3 py-1.5 text-xs transition-colors
         ${readOnly ? 'cursor-default' : 'cursor-pointer'}
         ${isCurrent ? 'bg-primary-600/30 text-primary-200 font-medium' : ''}
         ${isRedo ? 'opacity-40' : ''}
         ${!isCurrent && !readOnly ? 'hover:bg-white/5' : ''}`}
     >
       {icon}
-      <span className="flex-1 truncate">{getCommandLabel(entry.commandType)}</span>
+      <span className="min-w-0 flex-1 truncate">{getCommandLabel(entry.commandType)}</span>
       <span className="text-[10px] text-gray-500 tabular-nums shrink-0">
         {formatTime(entry.timestamp)}
       </span>
@@ -108,10 +108,7 @@ export const UndoHistoryPanel = memo(function UndoHistoryPanel({
     }
   }, [currentIndex]);
 
-  const handleJump = useCallback(
-    (idx: number) => void jumpToState(idx),
-    [jumpToState],
-  );
+  const handleJump = useCallback((idx: number) => void jumpToState(idx), [jumpToState]);
 
   const handleInitialClick = useCallback(() => {
     if (!readOnly) void jumpToState(-1);
@@ -136,11 +133,11 @@ export const UndoHistoryPanel = memo(function UndoHistoryPanel({
   }
 
   return (
-    <div className="flex flex-col h-full">
-      <div className="flex items-center gap-2 px-3 py-2 border-b border-white/10 shrink-0">
+    <div className="flex h-full min-h-0 min-w-0 flex-col">
+      <div className="flex min-w-0 shrink-0 items-center gap-2 border-b border-white/10 px-3 py-2">
         <History className="w-3.5 h-3.5 text-gray-400" />
-        <span className="text-xs font-medium text-gray-300">Undo History</span>
-        <span className="text-[10px] text-gray-500 ml-auto">
+        <span className="min-w-0 truncate text-xs font-medium text-gray-300">Undo History</span>
+        <span className="ml-auto shrink-0 text-[10px] text-gray-500">
           {undoEntries.length + redoEntries.length} operations
         </span>
       </div>
@@ -154,13 +151,13 @@ export const UndoHistoryPanel = memo(function UndoHistoryPanel({
             tabIndex={readOnly ? -1 : 0}
             onClick={handleInitialClick}
             onKeyDown={handleInitialKeyDown}
-            className={`flex items-center gap-2 px-3 py-1.5 text-xs transition-colors
+            className={`flex min-w-0 items-center gap-2 px-3 py-1.5 text-xs transition-colors
               ${readOnly ? 'cursor-default' : 'cursor-pointer'}
               ${currentIndex === -1 ? 'bg-primary-600/30 text-primary-200 font-medium' : 'text-gray-400'}
               ${currentIndex !== -1 && !readOnly ? 'hover:bg-white/5' : ''}`}
           >
             <Circle className="w-3 h-3 shrink-0 text-gray-500" />
-            <span className="flex-1 italic">Initial State</span>
+            <span className="min-w-0 flex-1 truncate italic">Initial State</span>
           </div>
         </div>
 

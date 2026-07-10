@@ -74,18 +74,15 @@ export const GenerationJobCard = memo(function GenerationJobCard({
     }
   }, [onAddToTimeline, job.assetId]);
 
-  const truncatedPrompt =
-    job.prompt.length > 60 ? `${job.prompt.slice(0, 57)}...` : job.prompt;
+  const truncatedPrompt = job.prompt.length > 60 ? `${job.prompt.slice(0, 57)}...` : job.prompt;
 
   const active = isActiveStatus(job.status);
 
   return (
-    <div
-      className={`p-3 rounded-lg border border-editor-border bg-editor-bg ${className}`}
-    >
+    <div className={`min-w-0 rounded-lg border border-editor-border bg-editor-bg p-3 ${className}`}>
       {/* Header: prompt + status badge */}
-      <div className="flex items-start justify-between gap-2 mb-2">
-        <p className="text-sm text-editor-text flex-1 truncate" title={job.prompt}>
+      <div className="mb-2 flex min-w-0 items-start justify-between gap-2">
+        <p className="min-w-0 flex-1 truncate text-sm text-editor-text" title={job.prompt}>
           {truncatedPrompt}
         </p>
         <span
@@ -115,18 +112,18 @@ export const GenerationJobCard = memo(function GenerationJobCard({
 
       {/* Error message */}
       {job.error && (
-        <p className="text-xs text-red-400 mb-2 truncate" title={job.error}>
+        <p className="mb-2 min-w-0 truncate text-xs text-red-400" title={job.error}>
           {job.error}
         </p>
       )}
 
       {/* Footer: cost + actions */}
-      <div className="flex items-center justify-between">
-        <span className="text-xs text-editor-text-muted">
+      <div className="flex min-w-0 items-center justify-between gap-2">
+        <span className="min-w-0 truncate text-xs text-editor-text-muted">
           Est. ${(job.estimatedCostCents / 100).toFixed(2)}
         </span>
 
-        <div className="flex items-center gap-1">
+        <div className="flex shrink-0 items-center gap-1">
           {active && onCancel && (
             <button
               type="button"

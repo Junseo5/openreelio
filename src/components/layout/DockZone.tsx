@@ -384,7 +384,7 @@ export function DockZone({
       ref={rootRef}
       data-testid={`dock-zone-${zoneId}`}
       data-dock-zone-id={zoneId}
-      className={`flex flex-col overflow-hidden bg-editor-sidebar ${dropHighlight} transition-shadow ${className}`}
+      className={`flex min-h-0 min-w-0 flex-col overflow-hidden bg-editor-sidebar ${dropHighlight} transition-shadow ${className}`}
       onDragOver={handleDragOver}
       onDragLeave={handleDragLeave}
       onDrop={handleDrop}
@@ -465,7 +465,7 @@ export function DockZone({
         <div
           id={`dock-panel-${activePanelId}`}
           role="tabpanel"
-          className={collapsed ? 'hidden' : 'min-h-0 flex-1 overflow-hidden bg-editor-bg'}
+          className={collapsed ? 'hidden' : 'min-h-0 min-w-0 flex-1 overflow-hidden bg-editor-bg'}
           aria-hidden={collapsed ? true : undefined}
         >
           {renderPanel(activePanelId)}
