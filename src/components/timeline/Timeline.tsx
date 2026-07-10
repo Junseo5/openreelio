@@ -2004,7 +2004,7 @@ export function Timeline({
     <TimelineOperationsProvider operations={timelineOperations}>
       <div
         data-testid="timeline"
-        className="h-full flex flex-col bg-editor-panel overflow-hidden focus:outline-none"
+        className="flex h-full min-h-0 min-w-0 flex-col overflow-hidden bg-editor-panel focus:outline-none"
         tabIndex={0}
         onKeyDown={handleKeyDown}
       >
@@ -2026,7 +2026,7 @@ export function Timeline({
         />
 
         {/* isolation: isolate creates a stacking context so playhead z-index doesn't escape to overlap modals */}
-        <div className="flex-1 flex flex-col relative isolate">
+        <div className="relative isolate flex min-h-0 min-w-0 flex-1 flex-col">
           <TimelineHeaderLayer
             cacheSegments={cacheSegments}
             duration={timelineDuration}
@@ -2041,7 +2041,7 @@ export function Timeline({
           <div
             ref={tracksAreaRef}
             data-testid="timeline-tracks-area"
-            className={`flex-1 overflow-hidden relative ${getTracksAreaCursor()}`}
+            className={`relative min-h-0 min-w-0 flex-1 overflow-hidden ${getTracksAreaCursor()}`}
             style={getTracksAreaCursorStyle()}
             onClick={handleTracksAreaClick}
             onPointerDown={handleTracksAreaPointerDown}
@@ -2059,6 +2059,7 @@ export function Timeline({
           >
             <div
               data-testid="timeline-tracks-scroll-layer"
+              className="min-w-0"
               style={{ transform: `translateY(-${scrollY}px)` }}
             >
               <TimelineTrackRows

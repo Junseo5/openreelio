@@ -76,6 +76,7 @@ export default {
         text: {
           primary: '#e4e4e7', // High Emphasis (Zinc-200) - Not pure white to reduce glare
           secondary: '#a1a1aa', // Medium Emphasis (Zinc-400)
+          tertiary: '#71717a', // Low Emphasis (Zinc-500)
           muted: '#52525b', // Disabled/Watermarks (Zinc-600)
           inverted: '#09090b', // Text on bright backgrounds
         },

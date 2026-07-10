@@ -7,9 +7,19 @@
  */
 
 import { type ReactNode, type ErrorInfo, memo } from 'react';
-import { Film, Play, FolderOpen, Settings, RefreshCw, Sparkles, Search, Download } from 'lucide-react';
+import {
+  Film,
+  Play,
+  FolderOpen,
+  Settings,
+  RefreshCw,
+  Sparkles,
+  Search,
+  Download,
+} from 'lucide-react';
 import { ErrorBoundary, type FallbackProps } from './ErrorBoundary';
 import { createLogger } from '@/services/logger';
+import { getUserFriendlyError } from '@/utils/errorMessages';
 
 // =============================================================================
 // Types
@@ -61,8 +71,10 @@ const FeatureErrorFallback = memo(function FeatureErrorFallback({
       <h3 className="text-lg font-semibold text-red-400 mb-2">{title}</h3>
 
       {/* Error message */}
-      <p className="text-sm text-editor-text-muted text-center mb-4 max-w-md">
-        {error.message || 'An unexpected error occurred'}
+      <p className="mb-4 max-w-md break-words text-center text-sm text-editor-text-muted [overflow-wrap:anywhere]">
+        {import.meta.env.DEV
+          ? error.message || 'An unexpected error occurred'
+          : getUserFriendlyError(error, { includeTechnicalDetails: false })}
       </p>
 
       {/* Retry button */}

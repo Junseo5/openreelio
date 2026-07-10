@@ -8,6 +8,7 @@
 import React, { useEffect, useRef, useCallback } from 'react';
 import { MessageSquare, Trash2, Edit3, Loader2 } from 'lucide-react';
 import type { AssetData } from '.';
+import { useViewportAwareMenuPosition } from '@/hooks/useViewportAwareMenuPosition';
 
 // =============================================================================
 // Types
@@ -61,6 +62,7 @@ export const AssetContextMenu: React.FC<AssetContextMenuProps> = ({
   isTranscriptionAvailable = true,
 }) => {
   const menuRef = useRef<HTMLDivElement>(null);
+  const { left, top, maxHeight } = useViewportAwareMenuPosition(position.x, position.y, menuRef);
 
   // Close on outside click
   useEffect(() => {
@@ -97,7 +99,7 @@ export const AssetContextMenu: React.FC<AssetContextMenuProps> = ({
       action();
       onClose();
     },
-    [onClose]
+    [onClose],
   );
 
   // Don't render if not open
@@ -105,15 +107,16 @@ export const AssetContextMenu: React.FC<AssetContextMenuProps> = ({
     return null;
   }
 
-  const canTranscribe = supportsTranscription(asset.kind) && isTranscriptionAvailable && !isTranscribing;
+  const canTranscribe =
+    supportsTranscription(asset.kind) && isTranscriptionAvailable && !isTranscribing;
 
   return (
     <div
       ref={menuRef}
       data-testid="asset-context-menu"
       role="menu"
-      className="fixed z-50 bg-neutral-800 border border-neutral-600 rounded-lg shadow-xl py-1 min-w-[180px]"
-      style={{ left: `${position.x}px`, top: `${position.y}px` }}
+      className="fixed z-[100] min-w-[180px] max-w-[calc(100vw-1rem)] overflow-y-auto rounded-lg border border-neutral-600 bg-neutral-800 py-1 shadow-xl"
+      style={{ left, top, maxHeight }}
     >
       {/* Transcribe Option (for video/audio only) */}
       {supportsTranscription(asset.kind) && (
@@ -139,9 +142,7 @@ export const AssetContextMenu: React.FC<AssetContextMenuProps> = ({
       )}
 
       {/* Separator */}
-      {supportsTranscription(asset.kind) && (
-        <div className="border-t border-neutral-600 my-1" />
-      )}
+      {supportsTranscription(asset.kind) && <div className="border-t border-neutral-600 my-1" />}
 
       {/* Rename Option */}
       {onRename && (

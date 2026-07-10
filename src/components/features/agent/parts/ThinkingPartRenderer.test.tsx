@@ -32,6 +32,13 @@ const clarificationThinkingPart: ThinkingPart = {
 };
 
 describe('ThinkingPartRenderer', () => {
+  it('should not expose thinking details when diagnostics are disabled', () => {
+    render(<ThinkingPartRenderer part={mockThinkingPart} diagnosticsEnabled={false} />);
+
+    expect(screen.queryByTestId('thinking-part')).not.toBeInTheDocument();
+    expect(screen.queryByText(/split the clip/)).not.toBeInTheDocument();
+  });
+
   it('should render thinking label', () => {
     render(<ThinkingPartRenderer part={mockThinkingPart} />);
 

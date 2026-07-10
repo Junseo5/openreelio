@@ -100,9 +100,7 @@ describe('MotionTrackingControl', () => {
 
     it('should call onTrackChange when method is changed', async () => {
       const onTrackChange = vi.fn();
-      render(
-        <MotionTrackingControl {...defaultProps} onTrackChange={onTrackChange} />
-      );
+      render(<MotionTrackingControl {...defaultProps} onTrackChange={onTrackChange} />);
 
       const selector = screen.getByTestId('method-selector');
       await userEvent.click(selector);
@@ -113,7 +111,7 @@ describe('MotionTrackingControl', () => {
       expect(onTrackChange).toHaveBeenCalledWith(
         expect.objectContaining({
           settings: expect.objectContaining({ method: 'region' }),
-        })
+        }),
       );
     });
   });
@@ -128,9 +126,7 @@ describe('MotionTrackingControl', () => {
         ],
       };
 
-      render(
-        <MotionTrackingControl {...defaultProps} track={trackWithMultiplePoints} />
-      );
+      render(<MotionTrackingControl {...defaultProps} track={trackWithMultiplePoints} />);
 
       expect(screen.getByText('Point A')).toBeInTheDocument();
       expect(screen.getByText('Point B')).toBeInTheDocument();
@@ -173,9 +169,7 @@ describe('MotionTrackingControl', () => {
   describe('remove point', () => {
     it('should call onRemovePoint when delete button is clicked', async () => {
       const onRemovePoint = vi.fn();
-      render(
-        <MotionTrackingControl {...defaultProps} onRemovePoint={onRemovePoint} />
-      );
+      render(<MotionTrackingControl {...defaultProps} onRemovePoint={onRemovePoint} />);
 
       const deleteButton = screen.getByTestId('delete-point-point-1');
       await userEvent.click(deleteButton);
@@ -187,9 +181,7 @@ describe('MotionTrackingControl', () => {
   describe('tracking controls', () => {
     it('should call onStartTracking when track button is clicked', async () => {
       const onStartTracking = vi.fn();
-      render(
-        <MotionTrackingControl {...defaultProps} onStartTracking={onStartTracking} />
-      );
+      render(<MotionTrackingControl {...defaultProps} onStartTracking={onStartTracking} />);
 
       const trackButton = screen.getByRole('button', { name: /^track$/i });
       await userEvent.click(trackButton);
@@ -226,11 +218,7 @@ describe('MotionTrackingControl', () => {
     it('should call onStopTracking when stop button is clicked', async () => {
       const onStopTracking = vi.fn();
       render(
-        <MotionTrackingControl
-          {...defaultProps}
-          isTracking
-          onStopTracking={onStopTracking}
-        />
+        <MotionTrackingControl {...defaultProps} isTracking onStopTracking={onStopTracking} />,
       );
 
       const stopButton = screen.getByRole('button', { name: /stop/i });
@@ -254,9 +242,7 @@ describe('MotionTrackingControl', () => {
 
     it('should update search area size', async () => {
       const onTrackChange = vi.fn();
-      render(
-        <MotionTrackingControl {...defaultProps} onTrackChange={onTrackChange} />
-      );
+      render(<MotionTrackingControl {...defaultProps} onTrackChange={onTrackChange} />);
 
       const settingsToggle = screen.getByRole('button', { name: /settings/i });
       await userEvent.click(settingsToggle);
@@ -267,7 +253,7 @@ describe('MotionTrackingControl', () => {
       expect(onTrackChange).toHaveBeenCalledWith(
         expect.objectContaining({
           settings: expect.objectContaining({ searchAreaSize: 150 }),
-        })
+        }),
       );
     });
   });
@@ -314,6 +300,9 @@ describe('MotionTrackingControl', () => {
 
       expect(screen.getByRole('button', { name: /add point/i })).toBeInTheDocument();
       expect(screen.getByRole('button', { name: /^track$/i })).toBeInTheDocument();
+      expect(
+        screen.getByRole('button', { name: 'Delete tracking point Point 1' }),
+      ).toBeInTheDocument();
     });
 
     it('should have accessible track point items', () => {

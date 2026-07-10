@@ -170,7 +170,12 @@ export function TextPresetPicker({
   );
 
   const gridClasses = useMemo(
-    () => ['grid', 'gap-2', compact ? 'grid-cols-4' : 'grid-cols-2'].join(' '),
+    () =>
+      [
+        'grid',
+        'gap-2',
+        compact ? 'max-h-56 grid-cols-4 overflow-y-auto overscroll-contain pr-1' : 'grid-cols-2',
+      ].join(' '),
     [compact],
   );
 

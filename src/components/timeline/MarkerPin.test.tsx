@@ -57,7 +57,7 @@ describe('MarkerPin', () => {
 
         const pin = screen.getByTestId(`marker-pin-marker_${markerType}`);
         expect(pin).toBeInTheDocument();
-      }
+      },
     );
   });
 
@@ -76,7 +76,7 @@ describe('MarkerPin', () => {
     it('uses default color for marker type when color is not meaningful', () => {
       const marker = createTestMarker({
         markerType: 'chapter',
-        color: { r: 0, g: 0, b: 0 } // All zeros
+        color: { r: 0, g: 0, b: 0 }, // All zeros
       });
 
       render(<MarkerPin marker={marker} zoom={100} selected={false} />);
@@ -109,6 +109,38 @@ describe('MarkerPin', () => {
   });
 
   describe('Click Handling', () => {
+    it('should select and edit the marker when Space and Enter are pressed', () => {
+      const onClick = vi.fn();
+      const onDoubleClick = vi.fn();
+      const marker = createTestMarker({ label: 'Keyboard marker' });
+
+      render(
+        <MarkerPin
+          marker={marker}
+          zoom={100}
+          selected={true}
+          onClick={onClick}
+          onDoubleClick={onDoubleClick}
+        />,
+      );
+
+      const pin = screen.getByRole('button', {
+        name: 'Keyboard marker, generic marker at 10.00 seconds',
+      });
+      expect(pin).toHaveAttribute('tabindex', '0');
+      expect(pin).toHaveAttribute('aria-pressed', 'true');
+
+      fireEvent.keyDown(pin, { key: ' ', metaKey: true });
+      expect(onClick).toHaveBeenCalledWith('marker_001', {
+        ctrlKey: false,
+        shiftKey: false,
+        metaKey: true,
+      });
+
+      fireEvent.keyDown(pin, { key: 'Enter' });
+      expect(onDoubleClick).toHaveBeenCalledWith('marker_001');
+    });
+
     it('calls onClick with marker id and modifiers', () => {
       const onClick = vi.fn();
       const marker = createTestMarker({ id: 'click_marker' });
@@ -118,11 +150,14 @@ describe('MarkerPin', () => {
       const pin = screen.getByTestId('marker-pin-click_marker');
       fireEvent.click(pin);
 
-      expect(onClick).toHaveBeenCalledWith('click_marker', expect.objectContaining({
-        ctrlKey: false,
-        shiftKey: false,
-        metaKey: false,
-      }));
+      expect(onClick).toHaveBeenCalledWith(
+        'click_marker',
+        expect.objectContaining({
+          ctrlKey: false,
+          shiftKey: false,
+          metaKey: false,
+        }),
+      );
     });
 
     it('passes modifier keys correctly', () => {
@@ -139,7 +174,7 @@ describe('MarkerPin', () => {
         expect.objectContaining({
           ctrlKey: true,
           shiftKey: true,
-        })
+        }),
       );
     });
 
@@ -148,13 +183,15 @@ describe('MarkerPin', () => {
       const marker = createTestMarker();
 
       render(
-        <MarkerPin marker={marker} zoom={100} selected={false} onClick={onClick} disabled={true} />
+        <MarkerPin marker={marker} zoom={100} selected={false} onClick={onClick} disabled={true} />,
       );
 
       const pin = screen.getByTestId('marker-pin-marker_001');
       fireEvent.click(pin);
 
       expect(onClick).not.toHaveBeenCalled();
+      expect(pin).toHaveAttribute('aria-disabled', 'true');
+      expect(pin).toHaveAttribute('tabindex', '-1');
     });
   });
 
@@ -164,7 +201,7 @@ describe('MarkerPin', () => {
       const marker = createTestMarker({ id: 'dbl_marker' });
 
       render(
-        <MarkerPin marker={marker} zoom={100} selected={false} onDoubleClick={onDoubleClick} />
+        <MarkerPin marker={marker} zoom={100} selected={false} onDoubleClick={onDoubleClick} />,
       );
 
       const pin = screen.getByTestId('marker-pin-dbl_marker');
@@ -180,7 +217,7 @@ describe('MarkerPin', () => {
       const marker = createTestMarker({ id: 'ctx_marker' });
 
       render(
-        <MarkerPin marker={marker} zoom={100} selected={false} onContextMenu={onContextMenu} />
+        <MarkerPin marker={marker} zoom={100} selected={false} onContextMenu={onContextMenu} />,
       );
 
       const pin = screen.getByTestId('marker-pin-ctx_marker');

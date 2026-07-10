@@ -4,8 +4,9 @@
  * Robust, accessible, viewport-aware context menu with keyboard navigation.
  */
 
-import { useEffect, useRef, useState, useLayoutEffect } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
+import { useViewportAwareMenuPosition } from '@/hooks/useViewportAwareMenuPosition';
 
 // =============================================================================
 // Types
@@ -35,60 +36,6 @@ export interface ContextMenuProps {
 }
 
 // =============================================================================
-// Helper Functions
-// =============================================================================
-
-function useAdjustedPosition(
-  x: number,
-  y: number,
-  menuRef: React.RefObject<HTMLDivElement>,
-): { x: number; y: number; height: string } {
-  const [position, setPosition] = useState({ x, y, height: 'auto' });
-
-  // useLayoutEffect prevents visual jumping by calculating before paint
-  useLayoutEffect(() => {
-    if (!menuRef.current) return;
-
-    const menu = menuRef.current;
-    const menuRect = menu.getBoundingClientRect();
-    const viewportWidth = window.innerWidth;
-    const viewportHeight = window.innerHeight;
-
-    let adjustedX = x;
-    let adjustedY = y;
-    let maxHeight = 'auto';
-
-    // Horizontal adjustment (flip to left if overflow)
-    if (x + menuRect.width > viewportWidth) {
-      adjustedX = x - menuRect.width;
-      // If still off-screen to the left, pin to right edge
-      if (adjustedX < 0) adjustedX = viewportWidth - menuRect.width - 8;
-    }
-
-    // Vertical adjustment
-    if (y + menuRect.height > viewportHeight) {
-      // Try flipping up
-      if (y - menuRect.height > 0) {
-        adjustedY = y - menuRect.height;
-      } else {
-        // If fits neither up nor down, pin to bottom and scroll
-        adjustedY = Math.max(8, viewportHeight - menuRect.height - 8);
-
-        // If menu is taller than viewport, constrain height
-        if (menuRect.height > viewportHeight) {
-          adjustedY = 8;
-          maxHeight = `${viewportHeight - 16}px`;
-        }
-      }
-    }
-
-    setPosition({ x: adjustedX, y: adjustedY, height: maxHeight });
-  }, [x, y, menuRef]);
-
-  return position;
-}
-
-// =============================================================================
 // Context Menu Component
 // =============================================================================
 
@@ -97,7 +44,7 @@ export function ContextMenu({ x, y, items, onClose }: ContextMenuProps): JSX.Ele
   const [focusedIndex, setFocusedIndex] = useState(-1);
 
   // Smart positioning
-  const { x: finalX, y: finalY, height } = useAdjustedPosition(x, y, menuRef);
+  const { left, top, maxHeight } = useViewportAwareMenuPosition(x, y, menuRef);
 
   // Click outside handler
   useEffect(() => {
@@ -170,11 +117,11 @@ export function ContextMenu({ x, y, items, onClose }: ContextMenuProps): JSX.Ele
     <div
       ref={menuRef}
       role="menu"
-      className="fixed z-[100] min-w-[200px] py-1.5 bg-surface-elevated rounded-lg border border-border-subtle shadow-xl animate-scale-in overflow-y-auto"
+      className="fixed z-[100] min-w-[200px] max-w-[calc(100vw-1rem)] overflow-y-auto rounded-lg border border-border-subtle bg-surface-elevated py-1.5 shadow-xl animate-scale-in"
       style={{
-        left: finalX,
-        top: finalY,
-        maxHeight: height,
+        left,
+        top,
+        maxHeight,
       }}
     >
       {items.map((item, index) => {
@@ -211,12 +158,14 @@ export function ContextMenu({ x, y, items, onClose }: ContextMenuProps): JSX.Ele
               focus:outline-none
             `}
           >
-            <span className="flex items-center gap-2.5">
-              {menuItem.icon && <span className="w-4 h-4">{menuItem.icon}</span>}
-              <span className="font-medium">{menuItem.label}</span>
+            <span className="flex min-w-0 items-center gap-2.5">
+              {menuItem.icon && <span className="h-4 w-4 shrink-0">{menuItem.icon}</span>}
+              <span className="min-w-0 break-words font-medium [overflow-wrap:anywhere]">
+                {menuItem.label}
+              </span>
             </span>
             {menuItem.shortcut && (
-              <span className="text-text-muted text-[10px] font-mono tracking-wider ml-6 uppercase opacity-70">
+              <span className="ml-6 shrink-0 font-mono text-[10px] uppercase tracking-wider text-text-muted opacity-70">
                 {menuItem.shortcut}
               </span>
             )}

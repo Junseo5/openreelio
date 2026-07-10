@@ -5,6 +5,7 @@
 import { describe, it, expect } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import { DropIndicator } from './DropIndicator';
+import { getClampedTooltipPosition } from './dropIndicatorPosition';
 import type { DropValidity } from '@/utils/dropValidity';
 
 // =============================================================================
@@ -31,6 +32,21 @@ const invalidDropLocked: DropValidity = {
 // =============================================================================
 
 describe('DropIndicator', () => {
+  describe('tooltip positioning', () => {
+    it('should follow the drop position when there is room', () => {
+      expect(getClampedTooltipPosition(200, 500, 80)).toBe(200);
+    });
+
+    it('should keep the tooltip inside either track edge', () => {
+      expect(getClampedTooltipPosition(10, 500, 80)).toBe(40);
+      expect(getClampedTooltipPosition(490, 500, 80)).toBe(460);
+    });
+
+    it('should center a tooltip that fills a narrow track', () => {
+      expect(getClampedTooltipPosition(20, 300, 500)).toBe(150);
+    });
+  });
+
   describe('rendering', () => {
     it('should render the indicator element', () => {
       render(<DropIndicator position={100} validity={validDrop} time={5.0} />);
@@ -47,14 +63,7 @@ describe('DropIndicator', () => {
     });
 
     it('should set height based on trackHeight prop', () => {
-      render(
-        <DropIndicator
-          position={100}
-          validity={validDrop}
-          time={5.0}
-          trackHeight={80}
-        />
-      );
+      render(<DropIndicator position={100} validity={validDrop} time={5.0} trackHeight={80} />);
 
       const indicator = screen.getByTestId('drop-indicator');
       expect(indicator).toHaveStyle({ height: '80px' });
@@ -86,18 +95,14 @@ describe('DropIndicator', () => {
 
   describe('invalid drop state', () => {
     it('should have invalid data attribute when drop is invalid', () => {
-      render(
-        <DropIndicator position={100} validity={invalidDropOverlap} time={5.0} />
-      );
+      render(<DropIndicator position={100} validity={invalidDropOverlap} time={5.0} />);
 
       const indicator = screen.getByTestId('drop-indicator');
       expect(indicator).toHaveAttribute('data-valid', 'false');
     });
 
     it('should show error message for invalid drops', () => {
-      render(
-        <DropIndicator position={100} validity={invalidDropOverlap} time={5.0} />
-      );
+      render(<DropIndicator position={100} validity={invalidDropOverlap} time={5.0} />);
 
       const errorMessage = screen.getByTestId('drop-indicator-error');
       expect(errorMessage).toBeInTheDocument();
@@ -105,9 +110,7 @@ describe('DropIndicator', () => {
     });
 
     it('should show locked track message', () => {
-      render(
-        <DropIndicator position={100} validity={invalidDropLocked} time={5.0} />
-      );
+      render(<DropIndicator position={100} validity={invalidDropLocked} time={5.0} />);
 
       const errorMessage = screen.getByTestId('drop-indicator-error');
       expect(errorMessage.textContent).toBe('Track is locked');
@@ -125,12 +128,7 @@ describe('DropIndicator', () => {
 
     it('should hide time tooltip when showTimeTooltip is false', () => {
       render(
-        <DropIndicator
-          position={100}
-          validity={validDrop}
-          time={5.0}
-          showTimeTooltip={false}
-        />
+        <DropIndicator position={100} validity={validDrop} time={5.0} showTimeTooltip={false} />,
       );
 
       expect(screen.queryByTestId('drop-indicator-time')).not.toBeInTheDocument();
@@ -145,7 +143,7 @@ describe('DropIndicator', () => {
           validity={invalidDropOverlap}
           time={5.0}
           showErrorMessage={false}
-        />
+        />,
       );
 
       expect(screen.queryByTestId('drop-indicator-error')).not.toBeInTheDocument();
@@ -158,9 +156,7 @@ describe('DropIndicator', () => {
         // No message
       };
 
-      render(
-        <DropIndicator position={100} validity={invalidNoMessage} time={5.0} />
-      );
+      render(<DropIndicator position={100} validity={invalidNoMessage} time={5.0} />);
 
       expect(screen.queryByTestId('drop-indicator-error')).not.toBeInTheDocument();
     });

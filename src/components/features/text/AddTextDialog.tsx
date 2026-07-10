@@ -8,9 +8,11 @@
 
 import { useState, useCallback, useEffect, useRef, useMemo } from 'react';
 import { X, Type } from 'lucide-react';
+import { ModalShell } from '@/components/ui';
 import type { Track, TextClipData, TrackKind } from '@/types';
 import { TextPresetPicker } from './TextPresetPicker';
 import { getPresetById, presetToTextClipData, type TextPreset } from '@/data/textPresets';
+import { getUserFriendlyError } from '@/utils/errorMessages';
 import { getClipTimelineDurationSec as resolveClipTimelineDurationSec } from '@/utils/clipTiming';
 
 /** Payload for adding a text clip */
@@ -291,8 +293,7 @@ export function AddTextDialog({
 
       onClose();
     } catch (error) {
-      const message = error instanceof Error ? error.message : String(error);
-      setSubmitError(message || 'Failed to add text clip');
+      setSubmitError(getUserFriendlyError(error, { includeTechnicalDetails: false }));
     } finally {
       setIsSubmitting(false);
     }
@@ -314,20 +315,14 @@ export function AddTextDialog({
   if (!isOpen) return null;
 
   return (
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/50"
-      onClick={handleClose}
+    <ModalShell
+      ariaLabel="Add Text"
+      onRequestClose={handleClose}
       onKeyDown={handleKeyDown}
-    >
-      <div
-        data-testid="add-text-dialog"
-        role="dialog"
-        aria-label="Add Text"
-        aria-modal="true"
-        className="bg-editor-sidebar border border-editor-border rounded-lg shadow-xl w-[400px] max-h-[90vh] overflow-hidden"
-        onClick={(e) => e.stopPropagation()}
-      >
-        {/* Header */}
+      testId="add-text-dialog"
+      widthClassName="max-w-[400px]"
+      dialogClassName="rounded-lg border border-editor-border bg-editor-sidebar shadow-xl"
+      header={
         <div className="flex items-center justify-between px-4 py-3 border-b border-editor-border">
           <h2 className="text-lg font-semibold text-editor-text flex items-center gap-2">
             <Type className="w-5 h-5 text-teal-400" />
@@ -342,89 +337,15 @@ export function AddTextDialog({
             <X className="w-5 h-5" />
           </button>
         </div>
-
-        {/* Body */}
-        <div className="p-4 space-y-4">
-          {/* Text Content */}
-          <div className="space-y-2">
-            <label htmlFor="text-content" className="block text-sm font-medium text-editor-text">
-              Text Content
-            </label>
-            <textarea
-              ref={textInputRef}
-              id="text-content"
-              className="w-full h-24 px-3 py-2 bg-editor-input border border-editor-border rounded text-sm text-editor-text placeholder-editor-text-muted resize-none focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-              value={content}
-              onChange={handleContentChange}
-              placeholder="Enter your text here..."
-            />
-          </div>
-
-          {/* Presets */}
-          <div className="space-y-2">
-            <label className="block text-sm font-medium text-editor-text">Style Preset</label>
-            <TextPresetPicker
-              onSelect={handlePresetSelect}
-              selectedPresetId={selectedPreset?.id}
-              compact
-              showCategories
-            />
-          </div>
-
-          {/* Track Selection */}
-          <div className="space-y-2">
-            <label htmlFor="track-select" className="block text-sm font-medium text-editor-text">
-              Track
-            </label>
-            <select
-              id="track-select"
-              className="w-full px-3 py-2 bg-editor-input border border-editor-border rounded text-sm text-editor-text focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-              value={selectedTrackId}
-              onChange={handleTrackChange}
-              disabled={isSubmitting}
-            >
-              {availableTracks.map((track) => (
-                <option key={track.id} value={track.id}>
-                  {track.name} ({track.kind})
-                </option>
-              ))}
-            </select>
-            {hasTrackConflict && (
-              <p className="text-xs text-red-400">
-                Selected track already has a clip at this time. Choose another track or move the
-                playhead.
-              </p>
-            )}
-          </div>
-
-          {/* Duration */}
-          <div className="space-y-2">
-            <label htmlFor="duration-input" className="block text-sm font-medium text-editor-text">
-              Duration (seconds)
-            </label>
-            <input
-              id="duration-input"
-              type="number"
-              min={MIN_DURATION}
-              max={MAX_DURATION}
-              step={0.5}
-              className="w-full px-3 py-2 bg-editor-input border border-editor-border rounded text-sm text-editor-text focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-              value={duration}
-              onChange={handleDurationChange}
-              disabled={isSubmitting}
-            />
-            <p className="text-xs text-editor-text-muted">
-              Text will be added at {currentTime.toFixed(2)}s on the timeline
-            </p>
-          </div>
-        </div>
-
-        {/* Footer */}
-        <div className="flex items-center justify-end gap-2 px-4 py-3 border-t border-editor-border">
-          {submitError && <p className="mr-auto text-xs text-red-400">{submitError}</p>}
+      }
+      footer={
+        <div className="flex items-center justify-end gap-2 border-t border-editor-border px-4 py-3">
+          {submitError && (
+            <p className="mr-auto min-w-0 break-words text-xs text-red-400">{submitError}</p>
+          )}
           <button
             type="button"
-            className="px-4 py-2 text-sm text-editor-text-muted hover:text-editor-text rounded border border-editor-border hover:bg-editor-border transition-colors"
+            className="rounded border border-editor-border px-4 py-2 text-sm text-editor-text-muted transition-colors hover:bg-editor-border hover:text-editor-text"
             onClick={handleClose}
             disabled={isSubmitting}
           >
@@ -432,14 +353,89 @@ export function AddTextDialog({
           </button>
           <button
             type="button"
-            className="px-4 py-2 text-sm bg-teal-600 text-white rounded hover:bg-teal-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            className="rounded bg-teal-600 px-4 py-2 text-sm text-white transition-colors hover:bg-teal-500 disabled:cursor-not-allowed disabled:opacity-50"
             onClick={handleAdd}
             disabled={!canSubmit}
           >
             {isSubmitting ? 'Adding...' : 'Add'}
           </button>
         </div>
+      }
+    >
+      <div className="space-y-4 p-4">
+        {/* Text Content */}
+        <div className="space-y-2">
+          <label htmlFor="text-content" className="block text-sm font-medium text-editor-text">
+            Text Content
+          </label>
+          <textarea
+            ref={textInputRef}
+            id="text-content"
+            className="w-full h-24 px-3 py-2 bg-editor-input border border-editor-border rounded text-sm text-editor-text placeholder-editor-text-muted resize-none focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+            value={content}
+            onChange={handleContentChange}
+            placeholder="Enter your text here..."
+          />
+        </div>
+
+        {/* Presets */}
+        <div className="space-y-2">
+          <label className="block text-sm font-medium text-editor-text">Style Preset</label>
+          <TextPresetPicker
+            onSelect={handlePresetSelect}
+            selectedPresetId={selectedPreset?.id}
+            compact
+            showCategories
+          />
+        </div>
+
+        {/* Track Selection */}
+        <div className="space-y-2">
+          <label htmlFor="track-select" className="block text-sm font-medium text-editor-text">
+            Track
+          </label>
+          <select
+            id="track-select"
+            className="w-full px-3 py-2 bg-editor-input border border-editor-border rounded text-sm text-editor-text focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+            value={selectedTrackId}
+            onChange={handleTrackChange}
+            disabled={isSubmitting}
+          >
+            {availableTracks.map((track) => (
+              <option key={track.id} value={track.id}>
+                {track.name} ({track.kind})
+              </option>
+            ))}
+          </select>
+          {hasTrackConflict && (
+            <p className="text-xs text-red-400">
+              Selected track already has a clip at this time. Choose another track or move the
+              playhead.
+            </p>
+          )}
+        </div>
+
+        {/* Duration */}
+        <div className="space-y-2">
+          <label htmlFor="duration-input" className="block text-sm font-medium text-editor-text">
+            Duration (seconds)
+          </label>
+          <input
+            id="duration-input"
+            type="number"
+            min={MIN_DURATION}
+            max={MAX_DURATION}
+            step={0.5}
+            className="w-full px-3 py-2 bg-editor-input border border-editor-border rounded text-sm text-editor-text focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+            value={duration}
+            onChange={handleDurationChange}
+            disabled={isSubmitting}
+          />
+          <p className="text-xs text-editor-text-muted">
+            Text will be added at {currentTime.toFixed(2)}s on the timeline
+          </p>
+        </div>
       </div>
-    </div>
+    </ModalShell>
   );
 }

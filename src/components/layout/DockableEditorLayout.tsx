@@ -317,7 +317,7 @@ export function DockableEditorLayout({
 
   return (
     <div
-      className={`flex h-screen min-h-screen flex-col overflow-hidden bg-editor-bg text-editor-text ${className}`}
+      className={`flex h-full min-h-0 flex-col overflow-hidden bg-editor-bg text-editor-text ${className}`}
     >
       {/* Header (fixed) */}
       <header role="banner" className="shrink-0">

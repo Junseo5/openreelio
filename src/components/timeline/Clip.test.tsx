@@ -253,6 +253,35 @@ describe('Clip', () => {
   // ===========================================================================
 
   describe('interactions', () => {
+    it('should select and activate the clip when Space and Enter are pressed', () => {
+      const onClick = vi.fn();
+      const onDoubleClick = vi.fn();
+      render(
+        <Clip
+          clip={mockClip}
+          zoom={100}
+          selected={false}
+          onClick={onClick}
+          onDoubleClick={onDoubleClick}
+        />,
+      );
+
+      const clip = screen.getByRole('button', { name: 'Timeline clip: Test Clip' });
+      expect(clip).toHaveAttribute('tabindex', '0');
+      expect(clip).toHaveAttribute('aria-pressed', 'false');
+
+      clip.focus();
+      fireEvent.keyDown(clip, { key: ' ', ctrlKey: true });
+      expect(onClick).toHaveBeenCalledWith('clip_001', {
+        ctrlKey: true,
+        shiftKey: false,
+        metaKey: false,
+      });
+
+      fireEvent.keyDown(clip, { key: 'Enter' });
+      expect(onDoubleClick).toHaveBeenCalledWith('clip_001');
+    });
+
     it('should call onClick when clicked with modifier keys', () => {
       const onClick = vi.fn();
       render(<Clip clip={mockClip} zoom={100} selected={false} onClick={onClick} />);
@@ -279,6 +308,8 @@ describe('Clip', () => {
 
       fireEvent.click(screen.getByTestId('clip-clip_001'));
       expect(onClick).not.toHaveBeenCalled();
+      expect(screen.getByTestId('clip-clip_001')).toHaveAttribute('aria-disabled', 'true');
+      expect(screen.getByTestId('clip-clip_001')).toHaveAttribute('tabindex', '-1');
     });
 
     it('should call onRazorClick instead of onClick when razor tool is active', () => {
@@ -300,6 +331,29 @@ describe('Clip', () => {
 
       expect(onRazorClick).toHaveBeenCalledTimes(1);
       expect(onClick).not.toHaveBeenCalled();
+    });
+
+    it('should ignore selection and activation keys when razor tool is active', () => {
+      useEditorToolStore.setState({ activeTool: 'razor' });
+
+      const onClick = vi.fn();
+      const onDoubleClick = vi.fn();
+      render(
+        <Clip
+          clip={mockClip}
+          zoom={100}
+          selected={false}
+          onClick={onClick}
+          onDoubleClick={onDoubleClick}
+        />,
+      );
+
+      const clip = screen.getByRole('button', { name: 'Timeline clip: Test Clip' });
+      fireEvent.keyDown(clip, { key: ' ' });
+      fireEvent.keyDown(clip, { key: 'Enter' });
+
+      expect(onClick).not.toHaveBeenCalled();
+      expect(onDoubleClick).not.toHaveBeenCalled();
     });
   });
 

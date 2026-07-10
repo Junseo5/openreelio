@@ -29,6 +29,7 @@ import { FileTreeContextMenu } from './FileTreeContextMenu';
 import { ProxyQueuePanel } from './ProxyQueuePanel';
 import { assetNeedsProxy, type FileTreeEntry, type AssetKind } from '@/types';
 import { ConfirmDialog } from '@/components/ui';
+import { getUserFriendlyError } from '@/utils';
 import {
   TranscriptionDialog,
   type TranscriptionOptions,
@@ -553,7 +554,7 @@ export function ProjectExplorer({ onAddToTimeline }: ProjectExplorerProps = {}) 
       } catch (error) {
         setImportStatus({
           kind: 'error',
-          message: `Import failed: ${error instanceof Error ? error.message : String(error)}`,
+          message: getUserFriendlyError(error, { includeTechnicalDetails: false }),
         });
         logger.error(
           source === 'picker'
@@ -574,7 +575,7 @@ export function ProjectExplorer({ onAddToTimeline }: ProjectExplorerProps = {}) 
       } catch (error) {
         setImportStatus({
           kind: 'error',
-          message: `Import failed: ${error instanceof Error ? error.message : String(error)}`,
+          message: getUserFriendlyError(error, { includeTechnicalDetails: false }),
         });
         logger.error('Failed to select files for import', { error });
       }
@@ -975,7 +976,11 @@ export function ProjectExplorer({ onAddToTimeline }: ProjectExplorerProps = {}) 
   // install-recommended-then-transcribe path. `modelOverride` forces a specific
   // model (e.g. the recommended one) regardless of the dialog's selection.
   const runTranscription = useCallback(
-    async (assetId: string, options: TranscriptionOptions, modelOverride?: string): Promise<void> => {
+    async (
+      assetId: string,
+      options: TranscriptionOptions,
+      modelOverride?: string,
+    ): Promise<void> => {
       setTranscribingAssets((prev) => new Set(prev).add(assetId));
       try {
         const result = await transcribeAndIndex(assetId, {
@@ -1267,7 +1272,7 @@ export function ProjectExplorer({ onAddToTimeline }: ProjectExplorerProps = {}) 
       {importStatus && (
         <div
           data-testid="import-status"
-          className={`border-b border-editor-border px-3 py-2 text-xs ${
+          className={`min-w-0 break-words border-b border-editor-border px-3 py-2 text-xs [overflow-wrap:anywhere] ${
             importStatus.kind === 'error'
               ? 'text-red-400'
               : importStatus.kind === 'warning'

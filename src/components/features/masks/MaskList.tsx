@@ -95,7 +95,7 @@ export function MaskList({
         onSelect(id);
       }
     },
-    [selectedId, onSelect]
+    [selectedId, onSelect],
   );
 
   // Handle visibility toggle
@@ -104,7 +104,7 @@ export function MaskList({
       e.stopPropagation();
       onToggleEnabled?.(mask.id, !mask.enabled);
     },
-    [onToggleEnabled]
+    [onToggleEnabled],
   );
 
   // Handle lock toggle
@@ -113,7 +113,7 @@ export function MaskList({
       e.stopPropagation();
       onToggleLocked?.(mask.id, !mask.locked);
     },
-    [onToggleLocked]
+    [onToggleLocked],
   );
 
   // Handle delete
@@ -126,13 +126,11 @@ export function MaskList({
   return (
     <div
       data-testid="mask-list"
-      className={`bg-zinc-900 rounded-lg border border-zinc-700 ${className}`}
+      className={`min-w-0 rounded-lg border border-zinc-700 bg-zinc-900 ${className}`}
     >
       {/* Header */}
-      <div className="flex items-center justify-between p-2 border-b border-zinc-700">
-        <span className="text-xs font-medium text-zinc-400 uppercase tracking-wide">
-          Masks
-        </span>
+      <div className="flex min-w-0 items-center justify-between border-b border-zinc-700 p-2">
+        <span className="text-xs font-medium text-zinc-400 uppercase tracking-wide">Masks</span>
         <div className="flex items-center gap-1">
           {/* Delete selected mask */}
           {onDelete && selectedId && (
@@ -164,13 +162,11 @@ export function MaskList({
       </div>
 
       {/* Mask List */}
-      <div className="max-h-48 overflow-y-auto">
+      <div className="max-h-48 min-w-0 overflow-y-auto">
         {masks.length === 0 ? (
-          <div className="p-4 text-center text-xs text-zinc-500">
-            No masks
-          </div>
+          <div className="p-4 text-center text-xs text-zinc-500">No masks</div>
         ) : (
-          <ul className="divide-y divide-zinc-800">
+          <ul className="min-w-0 divide-y divide-zinc-800">
             {masks.map((mask) => {
               const isSelected = mask.id === selectedId;
               return (
@@ -179,7 +175,7 @@ export function MaskList({
                   data-testid={`mask-item-${mask.id}`}
                   onClick={() => !disabled && handleMaskClick(mask.id)}
                   className={`
-                    flex items-center gap-2 px-2 py-1.5 cursor-pointer
+                    flex min-w-0 items-center gap-2 px-2 py-1.5 cursor-pointer
                     transition-colors
                     ${isSelected ? 'bg-blue-600 text-white' : 'hover:bg-zinc-800'}
                     ${!mask.enabled ? 'opacity-50' : ''}
@@ -187,12 +183,10 @@ export function MaskList({
                   `}
                 >
                   {/* Shape icon */}
-                  <span className="text-zinc-400">{getMaskIcon(mask.shape)}</span>
+                  <span className="shrink-0 text-zinc-400">{getMaskIcon(mask.shape)}</span>
 
                   {/* Mask name */}
-                  <span className="flex-1 text-xs truncate">
-                    {mask.name}
-                  </span>
+                  <span className="min-w-0 flex-1 truncate text-xs">{mask.name}</span>
 
                   {/* Lock indicator */}
                   {mask.locked && (
@@ -204,7 +198,7 @@ export function MaskList({
                   )}
 
                   {/* Action buttons */}
-                  <div className="flex items-center gap-0.5">
+                  <div className="flex shrink-0 items-center gap-0.5">
                     {/* Visibility toggle */}
                     {onToggleEnabled && (
                       <button
@@ -212,9 +206,7 @@ export function MaskList({
                         onClick={(e) => handleToggleEnabled(e, mask)}
                         disabled={disabled}
                         className={`p-0.5 rounded transition-colors ${
-                          isSelected
-                            ? 'hover:bg-blue-500'
-                            : 'hover:bg-zinc-700'
+                          isSelected ? 'hover:bg-blue-500' : 'hover:bg-zinc-700'
                         }`}
                         aria-label="Toggle visibility"
                       >
@@ -233,9 +225,7 @@ export function MaskList({
                         onClick={(e) => handleToggleLocked(e, mask)}
                         disabled={disabled}
                         className={`p-0.5 rounded transition-colors ${
-                          isSelected
-                            ? 'hover:bg-blue-500'
-                            : 'hover:bg-zinc-700'
+                          isSelected ? 'hover:bg-blue-500' : 'hover:bg-zinc-700'
                         }`}
                         aria-label="Toggle lock"
                       >

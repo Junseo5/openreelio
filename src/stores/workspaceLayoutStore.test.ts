@@ -8,12 +8,14 @@ import { describe, it, expect, beforeEach } from 'vitest';
 import {
   useWorkspaceLayoutStore,
   createDefaultLayout,
+  createPanelRegistry,
   findPanelZone,
   findPreset,
   revealWorkspacePanel,
   WORKSPACE_PRESETS,
   MIN_ZONE_SIZES,
   MAX_ZONE_SIZES,
+  normalizeWorkspaceLayout,
   type WorkspaceLayout,
   type WorkspacePreset,
 } from './workspaceLayoutStore';
@@ -26,6 +28,21 @@ describe('WorkspaceLayoutStore', () => {
   });
 
   describe('default layout', () => {
+    it('should remove development-only performance panels from production layouts', () => {
+      const staleLayout = createDefaultLayout();
+      staleLayout.zones.bottom = {
+        panelIds: ['history', 'performance', 'transcript'],
+        activePanelId: 'performance',
+        collapsed: false,
+      };
+
+      const normalized = normalizeWorkspaceLayout(staleLayout, createPanelRegistry(false));
+
+      expect(createPanelRegistry(false).performance).toBeUndefined();
+      expect(normalized.zones.bottom.panelIds).toEqual(['history', 'transcript']);
+      expect(normalized.zones.bottom.activePanelId).toBe('history');
+    });
+
     it('should initialize with explorer in left zone', () => {
       const { layout } = useWorkspaceLayoutStore.getState();
       expect(layout.zones.left.panelIds).toContain('explorer');

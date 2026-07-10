@@ -112,9 +112,9 @@ export function WelcomeScreen({
     <div
       data-testid="welcome-screen"
       role="main"
-      className="min-h-full bg-editor-bg text-editor-text"
+      className="h-full min-h-0 overflow-y-auto bg-editor-bg text-editor-text"
     >
-      <div className="mx-auto flex min-h-screen w-full max-w-6xl flex-col px-5 py-5 sm:px-8 sm:py-7">
+      <div className="mx-auto flex min-h-full w-full max-w-6xl flex-col px-5 py-5 sm:px-8 sm:py-7">
         <header className="flex items-center justify-between gap-4">
           <div className="flex min-w-0 items-center gap-3">
             <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-md bg-primary-600 text-white shadow-md shadow-black/30">

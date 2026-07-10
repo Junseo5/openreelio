@@ -17,6 +17,13 @@ describe('ReasoningPartRenderer', () => {
       'The final conclusion is to use the trim tool.',
   };
 
+  it('should not expose reasoning when diagnostics are disabled', () => {
+    render(<ReasoningPartRenderer part={shortPart} diagnosticsEnabled={false} />);
+
+    expect(screen.queryByTestId('reasoning-part')).not.toBeInTheDocument();
+    expect(screen.queryByText(/split_clip/)).not.toBeInTheDocument();
+  });
+
   it('should render collapsed by default', () => {
     render(<ReasoningPartRenderer part={shortPart} />);
     expect(screen.getByTestId('reasoning-part')).toBeInTheDocument();
@@ -25,9 +32,7 @@ describe('ReasoningPartRenderer', () => {
 
   it('should show preview text when collapsed for short content', () => {
     render(<ReasoningPartRenderer part={shortPart} />);
-    expect(
-      screen.getByText(/The user wants to split a clip/),
-    ).toBeInTheDocument();
+    expect(screen.getByText(/The user wants to split a clip/)).toBeInTheDocument();
   });
 
   it('should truncate preview for long content', () => {
@@ -43,9 +48,7 @@ describe('ReasoningPartRenderer', () => {
     await user.click(button);
 
     expect(button).toHaveAttribute('aria-expanded', 'true');
-    expect(
-      screen.getByText(shortPart.content),
-    ).toBeInTheDocument();
+    expect(screen.getByText(shortPart.content)).toBeInTheDocument();
   });
 
   it('should collapse on second click', async () => {

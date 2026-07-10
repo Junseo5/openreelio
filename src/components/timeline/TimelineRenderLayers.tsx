@@ -34,7 +34,7 @@ export function TimelineEmptyState(): JSX.Element {
   return (
     <div
       data-testid="timeline"
-      className="h-full flex flex-col items-center justify-center text-editor-text-muted bg-editor-panel"
+      className="flex h-full min-h-0 min-w-0 flex-col items-center justify-center bg-editor-panel text-editor-text-muted"
     >
       <svg
         className="w-16 h-16 mb-4 text-editor-text-muted/50"
@@ -78,13 +78,13 @@ export function TimelineHeaderLayer({
 }: TimelineHeaderLayerProps): JSX.Element {
   return (
     <>
-      <div className="flex border-b border-editor-border flex-shrink-0">
+      <div className="flex min-w-0 flex-shrink-0 border-b border-editor-border">
         <div className="w-48 flex-shrink-0 bg-editor-sidebar border-r border-editor-border flex items-center justify-center">
           <span className="text-xs text-editor-text-muted font-medium uppercase tracking-wider select-none">
             Tracks
           </span>
         </div>
-        <div className="flex-1 overflow-hidden" onWheel={onWheel}>
+        <div className="min-w-0 flex-1 overflow-hidden" onWheel={onWheel}>
           <div
             data-testid="timeline-ruler-scroll-layer"
             style={{ transform: `translateX(-${scrollX}px)` }}
@@ -265,7 +265,7 @@ export function TimelinePlayheadLayer({
   return (
     <div
       ref={playheadViewportRef as RefObject<HTMLDivElement>}
-      className="absolute top-0 bottom-0 overflow-hidden pointer-events-none"
+      className="pointer-events-none absolute top-0 bottom-0 min-w-0 overflow-hidden"
       style={{
         left: `${TRACK_HEADER_WIDTH}px`,
         right: 0,

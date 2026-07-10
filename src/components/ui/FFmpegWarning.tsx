@@ -6,6 +6,7 @@
  */
 
 import { useCallback, useId, useRef, useEffect, type KeyboardEvent } from 'react';
+import { ModalShell } from './ModalShell';
 
 // =============================================================================
 // Types
@@ -51,7 +52,7 @@ export function FFmpegWarning({
         onDismiss();
       }
     },
-    [onDismiss, allowDismiss]
+    [onDismiss, allowDismiss],
   );
 
   const handleBackdropClick = useCallback(() => {
@@ -59,10 +60,6 @@ export function FFmpegWarning({
       onDismiss();
     }
   }, [allowDismiss, onDismiss]);
-
-  const handleDialogClick = useCallback((e: React.MouseEvent) => {
-    e.stopPropagation();
-  }, []);
 
   const handleOpenLink = useCallback((url: string) => {
     window.open(url, '_blank', 'noopener,noreferrer');
@@ -87,34 +84,25 @@ export function FFmpegWarning({
   }
 
   return (
-    <div
-      data-testid="ffmpeg-warning"
+    <ModalShell
       role="alertdialog"
-      aria-modal="true"
-      aria-labelledby={titleId}
-      className="fixed inset-0 z-50 flex items-center justify-center"
+      ariaLabelledBy={titleId}
+      onRequestClose={handleBackdropClick}
       onKeyDown={handleKeyDown}
-    >
-      {/* Backdrop */}
-      <div
-        data-testid="ffmpeg-warning-backdrop"
-        className="absolute inset-0 bg-surface-overlay backdrop-blur-sm"
-        onClick={handleBackdropClick}
-      />
-
-      {/* Dialog Content */}
-      <div
-        className="relative z-10 w-[calc(100%-2rem)] max-w-lg mx-4 bg-surface-elevated rounded-lg shadow-xl p-6 border border-border-default"
-        onClick={handleDialogClick}
-      >
-        {/* Warning Icon & Title */}
-        <div className="flex items-start gap-4 mb-4">
-          <div className="flex-shrink-0 w-12 h-12 bg-status-warning/20 rounded-full flex items-center justify-center">
+      overlayClassName="bg-surface-overlay backdrop-blur-sm"
+      overlayTestId="ffmpeg-warning-backdrop"
+      testId="ffmpeg-warning"
+      widthClassName="max-w-lg"
+      dialogClassName="rounded-lg border border-border-default bg-surface-elevated shadow-xl"
+      header={
+        <div className="flex items-start gap-4 px-6 pt-6">
+          <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-status-warning/20">
             <svg
-              className="w-6 h-6 text-status-warning"
+              className="h-6 w-6 text-status-warning"
               fill="none"
               viewBox="0 0 24 24"
               stroke="currentColor"
+              aria-hidden="true"
             >
               <path
                 strokeLinecap="round"
@@ -128,29 +116,51 @@ export function FFmpegWarning({
             <h2 id={titleId} className="text-lg font-semibold text-text-primary">
               FFmpeg Not Found
             </h2>
-            <p className="text-text-secondary text-sm mt-1">
+            <p className="mt-1 break-words text-sm text-text-secondary [overflow-wrap:anywhere]">
               FFmpeg is required for video processing, preview, and export.
             </p>
           </div>
         </div>
-
-        {/* Installation Instructions */}
-        <div className="bg-surface-base rounded-lg p-4 mb-4">
-          <h3 className="text-sm font-medium text-text-secondary mb-3">
+      }
+      footer={
+        <div className="flex flex-col-reverse gap-2 px-6 pb-6 sm:flex-row sm:justify-end sm:gap-3">
+          <button
+            type="button"
+            className="rounded bg-surface-active px-4 py-2 text-sm font-medium text-text-secondary transition-colors hover:bg-surface-highest"
+            onClick={() => handleOpenLink(FFMPEG_DOWNLOAD_URL)}
+          >
+            Official Download
+          </button>
+          {allowDismiss && (
+            <button
+              ref={dismissButtonRef}
+              data-testid="ffmpeg-warning-dismiss"
+              type="button"
+              className="rounded bg-status-warning px-4 py-2 text-sm font-medium text-white transition-colors hover:brightness-110"
+              onClick={onDismiss}
+            >
+              Continue Anyway
+            </button>
+          )}
+        </div>
+      }
+    >
+      <div className="break-words px-6 py-4 [overflow-wrap:anywhere]">
+        <div className="rounded-lg bg-surface-base p-4">
+          <h3 className="mb-3 text-sm font-medium text-text-secondary">
             Installation Instructions
           </h3>
 
-          {/* Windows */}
-          <div className="mb-3">
-            <div className="flex items-center gap-2 text-sm text-text-secondary mb-1">
+          <div className="mb-3 min-w-0">
+            <div className="mb-1 flex items-center gap-2 text-sm text-text-secondary">
               <span className="font-medium text-text-primary">Windows:</span>
             </div>
-            <ol className="text-xs text-text-secondary list-decimal list-inside space-y-1 ml-2">
+            <ol className="ml-2 list-inside list-decimal space-y-1 text-xs text-text-secondary">
               <li>
                 Download from{' '}
                 <button
                   type="button"
-                  className="text-primary-400 hover:text-primary-300 underline"
+                  className="break-all text-primary-400 underline hover:text-primary-300"
                   onClick={() => handleOpenLink(FFMPEG_WINDOWS_URL)}
                 >
                   gyan.dev/ffmpeg/builds
@@ -161,54 +171,29 @@ export function FFmpegWarning({
             </ol>
           </div>
 
-          {/* macOS */}
           <div className="mb-3">
-            <div className="flex items-center gap-2 text-sm text-text-secondary mb-1">
+            <div className="mb-1 flex items-center gap-2 text-sm text-text-secondary">
               <span className="font-medium text-text-primary">macOS:</span>
             </div>
-            <code className="block text-xs bg-surface-active text-status-success px-2 py-1 rounded ml-2 font-mono">
+            <code className="ml-2 block whitespace-pre-wrap break-all rounded bg-surface-active px-2 py-1 font-mono text-xs text-status-success">
               {FFMPEG_MAC_HOMEBREW}
             </code>
           </div>
 
-          {/* Linux */}
           <div>
-            <div className="flex items-center gap-2 text-sm text-text-secondary mb-1">
+            <div className="mb-1 flex items-center gap-2 text-sm text-text-secondary">
               <span className="font-medium text-text-primary">Linux (Debian/Ubuntu):</span>
             </div>
-            <code className="block text-xs bg-surface-active text-status-success px-2 py-1 rounded ml-2 font-mono">
+            <code className="ml-2 block whitespace-pre-wrap break-all rounded bg-surface-active px-2 py-1 font-mono text-xs text-status-success">
               {FFMPEG_LINUX_APT}
             </code>
           </div>
         </div>
 
-        {/* Note */}
-        <p className="text-xs text-text-muted mb-4">
+        <p className="mt-4 text-xs text-text-muted">
           After installing FFmpeg, restart OpenReelio for changes to take effect.
         </p>
-
-        {/* Actions */}
-        <div className="flex flex-col-reverse sm:flex-row sm:justify-end gap-2 sm:gap-3">
-          <button
-            type="button"
-            className="px-4 py-2 text-sm font-medium text-text-secondary bg-surface-active rounded hover:bg-surface-highest transition-colors"
-            onClick={() => handleOpenLink(FFMPEG_DOWNLOAD_URL)}
-          >
-            Official Download
-          </button>
-          {allowDismiss && (
-            <button
-              ref={dismissButtonRef}
-              data-testid="ffmpeg-warning-dismiss"
-              type="button"
-              className="px-4 py-2 text-sm font-medium text-white bg-status-warning rounded hover:brightness-110 transition-colors"
-              onClick={onDismiss}
-            >
-              Continue Anyway
-            </button>
-          )}
-        </div>
       </div>
-    </div>
+    </ModalShell>
   );
 }

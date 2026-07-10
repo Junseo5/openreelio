@@ -19,6 +19,16 @@ const mockToolCallPart: ToolCallPart = {
 };
 
 describe('ToolCallPartRenderer', () => {
+  it('should show only user-facing activity when diagnostics are disabled', () => {
+    render(<ToolCallPartRenderer part={mockToolCallPart} diagnosticsEnabled={false} />);
+
+    expect(screen.getByText('Working...')).toBeInTheDocument();
+    expect(screen.queryByText('split_clip')).not.toBeInTheDocument();
+    expect(screen.queryByText('Split clip at 5 seconds')).not.toBeInTheDocument();
+    expect(screen.queryByText(/clip-1/)).not.toBeInTheDocument();
+    expect(screen.queryByRole('button')).not.toBeInTheDocument();
+  });
+
   it('should render the tool call', () => {
     render(<ToolCallPartRenderer part={mockToolCallPart} />);
 

@@ -49,6 +49,50 @@ describe('AgentArtifactDetailPanel', () => {
     expect(screen.getByTestId('tool-result-part')).toBeInTheDocument();
   });
 
+  it('shows one user-facing completion row when diagnostics are disabled', () => {
+    const messages: ConversationMessage[] = [
+      {
+        id: 'msg-production',
+        role: 'assistant',
+        parts: [
+          {
+            type: 'tool_call',
+            stepId: 's1',
+            tool: 'delete_clip',
+            args: { clipId: 'private-clip-id' },
+            description: 'Delete private-clip-id',
+            riskLevel: 'medium',
+            status: 'completed',
+          },
+          {
+            type: 'tool_result',
+            stepId: 's1',
+            tool: 'delete_clip',
+            success: true,
+            duration: 25,
+            data: { clipId: 'private-clip-id' },
+          },
+        ],
+        timestamp: 1,
+      },
+    ];
+
+    render(
+      <AgentArtifactDetailPanel
+        messages={messages}
+        focus={{ kind: 'tool', value: 'delete_clip' }}
+        diagnosticsEnabled={false}
+      />,
+    );
+
+    expect(screen.getAllByText('Action completed')).toHaveLength(1);
+    expect(screen.queryByTestId('tool-call-part')).not.toBeInTheDocument();
+    expect(screen.getByTestId('tool-result-part')).toBeInTheDocument();
+    expect(screen.queryByText('delete_clip')).not.toBeInTheDocument();
+    expect(screen.queryByText(/private-clip-id/)).not.toBeInTheDocument();
+    expect(screen.queryByText('25ms')).not.toBeInTheDocument();
+  });
+
   it('renders summary detail for the selected summary focus', () => {
     const messages: ConversationMessage[] = [
       {

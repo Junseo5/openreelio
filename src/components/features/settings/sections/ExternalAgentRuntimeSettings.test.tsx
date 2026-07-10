@@ -182,6 +182,160 @@ describe('ExternalAgentRuntimeSettings', () => {
     });
   });
 
+  it('should hide runtime paths and sources when diagnostics are disabled', async () => {
+    vi.mocked(invoke).mockImplementation((command) => {
+      if (command === 'get_codex_status') {
+        return Promise.resolve({
+          installed: true,
+          version: 'codex-cli 0.130.0',
+          authStatus: 'signed-in',
+          reason: null,
+          runtimeSource: 'private-runtime-source',
+          codexHome: '/private/codex/home',
+        });
+      }
+      if (command === 'configure_codex_agent_runtime') {
+        return Promise.resolve({
+          installed: true,
+          version: 'codex-cli 0.130.0',
+          authStatus: 'signed-in',
+          ready: true,
+          requiresLogin: false,
+          pluginMarketplaceConfigured: true,
+          mcpConfigured: true,
+          message: 'Internal setup detail.',
+          runtimeSource: 'private-runtime-source',
+          codexHome: '/private/codex/home',
+        });
+      }
+      if (command === 'get_codex_model_catalog') {
+        return Promise.resolve({
+          installed: true,
+          defaultModel: 'gpt-5.5',
+          defaultReasoningEffort: 'medium',
+          models: [],
+          reason: null,
+        });
+      }
+      return Promise.reject(new Error(`Unexpected command: ${command}`));
+    });
+
+    render(
+      <ExternalAgentRuntimeSettings
+        settings={{ ...defaultSettings, assistantRuntime: 'codex' }}
+        onUpdate={vi.fn()}
+        diagnosticsEnabled={false}
+      />,
+    );
+
+    await waitFor(() => expect(screen.getByText(/Codex is signed in/i)).toBeInTheDocument());
+    expect(screen.queryByTestId('codex-runtime-diagnostics')).not.toBeInTheDocument();
+    expect(screen.queryByText(/private-runtime-source/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/private\/codex\/home/i)).not.toBeInTheDocument();
+  });
+
+  it('should replace raw setup failures when diagnostics are disabled', async () => {
+    vi.mocked(invoke).mockImplementation((command) => {
+      if (command === 'get_codex_status') {
+        return Promise.resolve({
+          installed: true,
+          version: 'codex-cli 0.130.0',
+          authStatus: 'signed-in',
+          reason: null,
+        });
+      }
+      if (command === 'configure_codex_agent_runtime') {
+        return Promise.reject(new Error('private-command --token secret-value'));
+      }
+      if (command === 'get_codex_model_catalog') {
+        return Promise.resolve({
+          installed: true,
+          defaultModel: 'gpt-5.5',
+          defaultReasoningEffort: 'medium',
+          models: [],
+          reason: null,
+        });
+      }
+      return Promise.reject(new Error(`Unexpected command: ${command}`));
+    });
+
+    render(
+      <ExternalAgentRuntimeSettings
+        settings={{ ...defaultSettings, assistantRuntime: 'codex' }}
+        onUpdate={vi.fn()}
+        diagnosticsEnabled={false}
+      />,
+    );
+
+    expect(
+      await screen.findByText(
+        'The Codex setup action could not be completed. Check your connection and try again.',
+      ),
+    ).toBeInTheDocument();
+    expect(screen.queryByText(/secret-value/i)).not.toBeInTheDocument();
+  });
+
+  it('should preserve safe Node.js guidance for Codex installation failures', async () => {
+    vi.mocked(invoke).mockImplementation((command) => {
+      if (command === 'get_codex_status') {
+        return Promise.resolve({
+          installed: false,
+          version: null,
+          authStatus: 'unknown',
+          reason: 'Codex CLI was not found.',
+        });
+      }
+      if (command === 'configure_codex_agent_runtime') {
+        return Promise.resolve({
+          installed: false,
+          version: null,
+          authStatus: 'unknown',
+          ready: false,
+          requiresLogin: false,
+          pluginMarketplaceConfigured: false,
+          mcpConfigured: false,
+          message: 'Codex CLI was not found.',
+        });
+      }
+      if (command === 'get_codex_model_catalog') {
+        return Promise.resolve({
+          installed: false,
+          defaultModel: 'gpt-5.5',
+          defaultReasoningEffort: 'medium',
+          models: [],
+          reason: 'Codex CLI was not found.',
+        });
+      }
+      if (command === 'install_codex_cli') {
+        return Promise.resolve({
+          success: false,
+          version: null,
+          attemptedCommand: 'private npm command --token secret-value',
+          message:
+            'npm was not found. Install Node.js with npm, then run private npm command --token secret-value.',
+        });
+      }
+      return Promise.reject(new Error(`Unexpected command: ${command}`));
+    });
+
+    render(
+      <ExternalAgentRuntimeSettings
+        settings={{ ...defaultSettings, assistantRuntime: 'codex' }}
+        onUpdate={vi.fn()}
+        diagnosticsEnabled={false}
+      />,
+    );
+
+    await userEvent.click(await screen.findByRole('button', { name: /install codex/i }));
+
+    expect(
+      await screen.findByText(
+        'Node.js with npm is required to install or update Codex. Install Node.js, then try again.',
+      ),
+    ).toBeInTheDocument();
+    expect(screen.queryByText(/secret-value/i)).not.toBeInTheDocument();
+  });
+
   it('should treat native Codex app tools as ready even when optional MCP setup fails', async () => {
     vi.mocked(invoke).mockImplementation((command) => {
       if (command === 'get_codex_status') {
@@ -537,7 +691,7 @@ describe('ExternalAgentRuntimeSettings', () => {
     expect(vi.mocked(invoke)).toHaveBeenCalledWith('update_codex_cli');
   });
 
-  it('should not show sign-in when Codex cannot be launched on this OS', async () => {
+  it('should show safe launcher guidance without exposing raw diagnostics', async () => {
     vi.mocked(invoke).mockImplementation((command) => {
       if (command === 'get_codex_status') {
         return Promise.resolve({
@@ -577,11 +731,18 @@ describe('ExternalAgentRuntimeSettings', () => {
       <ExternalAgentRuntimeSettings
         settings={{ ...defaultSettings, assistantRuntime: 'codex' }}
         onUpdate={vi.fn()}
-        disabled={false}
+        diagnosticsEnabled={false}
       />,
     );
 
-    await waitFor(() => expect(screen.getByText(/not executable on this OS/i)).toBeInTheDocument());
+    await waitFor(() =>
+      expect(
+        screen.getByText(
+          'Codex could not be started on this device. Reinstall Codex and make sure its native launcher is available.',
+        ),
+      ).toBeInTheDocument(),
+    );
+    expect(screen.queryByText(/not executable on this OS/i)).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /sign in with codex/i })).not.toBeInTheDocument();
   });
 

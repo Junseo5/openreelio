@@ -1460,7 +1460,10 @@ export function EditorView({ sequence, appVersion = '0.1.0' }: EditorViewProps):
     onUngroupClips: handleUngroupSelectedClips,
     onCreateMulticamGroup: handleCreateSynchronizedMulticamGroup,
     onToggleMixer: handleToggleMixer,
-    onAddText: () => setActiveTool('text'),
+    onAddText: () => {
+      setActiveTool('text');
+      setShowAddTextDialog(true);
+    },
     onAutoDuck: handleAutoDuck,
   });
 
@@ -2147,11 +2150,13 @@ export function EditorView({ sequence, appVersion = '0.1.0' }: EditorViewProps):
   // Add Text handlers
   const handleOpenAddText = useCallback(() => {
     setActiveTool('text');
+    setShowAddTextDialog(true);
   }, [setActiveTool]);
 
   const handleCloseAddText = useCallback(() => {
     setShowAddTextDialog(false);
-  }, []);
+    setActiveTool('select');
+  }, [setActiveTool]);
 
   const handleAddTextClip = useCallback(
     async (payload: AddTextPayload) => {

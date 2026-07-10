@@ -5,7 +5,7 @@
  * Unlike video/audio clips, caption clips show the text content directly.
  */
 
-import { useMemo, type MouseEvent } from 'react';
+import { useMemo, type KeyboardEvent, type MouseEvent } from 'react';
 import type { Caption, CaptionColor, ClickModifiers } from '@/types';
 
 // Re-export for backward compatibility
@@ -128,8 +128,7 @@ function getSpeakerColor(speaker: string): CaptionColor {
 // =============================================================================
 
 export function CaptionClip(props: CaptionClipProps) {
-  const { caption, zoom, selected, disabled = false, speakerColor, onClick, onDoubleClick } =
-    props;
+  const { caption, zoom, selected, disabled = false, speakerColor, onClick, onDoubleClick } = props;
   // Calculate display dimensions
   const displayPosition = useMemo(() => {
     const duration = caption.endSec - caption.startSec;
@@ -166,6 +165,13 @@ export function CaptionClip(props: CaptionClipProps) {
     return truncateText(caption.text, MAX_TEXT_PREVIEW_CHARS);
   }, [caption.text]);
 
+  const accessibleLabel = useMemo(() => {
+    const normalizedText = caption.text.replace(/\s+/g, ' ').trim() || 'Untitled caption';
+    return caption.speaker
+      ? `Caption by ${caption.speaker}: ${normalizedText}`
+      : `Caption: ${normalizedText}`;
+  }, [caption.speaker, caption.text]);
+
   // Handle click
   const handleClick = (e: MouseEvent) => {
     e.stopPropagation();
@@ -186,11 +192,47 @@ export function CaptionClip(props: CaptionClipProps) {
     }
   };
 
+  const handleKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
+    if (event.target !== event.currentTarget || disabled) {
+      return;
+    }
+
+    const modifiers: ClickModifiers = {
+      ctrlKey: event.ctrlKey,
+      shiftKey: event.shiftKey,
+      metaKey: event.metaKey,
+    };
+
+    if (event.key === ' ' && onClick) {
+      event.preventDefault();
+      event.stopPropagation();
+      onClick(caption.id, modifiers);
+      return;
+    }
+
+    if (event.key === 'Enter' && (onDoubleClick || onClick)) {
+      event.preventDefault();
+      event.stopPropagation();
+
+      if (onDoubleClick) {
+        onDoubleClick(caption.id);
+      } else {
+        onClick?.(caption.id, modifiers);
+      }
+    }
+  };
+
   return (
     <div
       data-testid={`caption-clip-${caption.id}`}
+      role="button"
+      aria-label={accessibleLabel}
+      aria-pressed={selected}
+      aria-disabled={disabled}
+      tabIndex={disabled ? -1 : 0}
       className={`
         absolute h-full rounded-sm cursor-pointer transition-shadow select-none overflow-hidden
+        focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-white
         ${selected ? 'ring-2 ring-primary-400 z-10' : ''}
         ${disabled ? 'opacity-50 cursor-not-allowed' : 'hover:brightness-110'}
       `}
@@ -201,6 +243,7 @@ export function CaptionClip(props: CaptionClipProps) {
       }}
       onClick={handleClick}
       onDoubleClick={handleDoubleClick}
+      onKeyDown={handleKeyDown}
       title={caption.text}
     >
       {/* Caption content */}
@@ -216,10 +259,7 @@ export function CaptionClip(props: CaptionClipProps) {
         )}
 
         {/* Caption text */}
-        <span
-          className="text-xs truncate leading-tight"
-          style={{ color: textColor }}
-        >
+        <span className="text-xs truncate leading-tight" style={{ color: textColor }}>
           {displayText}
         </span>
       </div>

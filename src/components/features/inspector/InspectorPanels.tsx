@@ -55,6 +55,7 @@ import type {
   AudioRole,
 } from '@/types';
 import type { SelectedAsset, SelectedCaption, SelectedClip } from './Inspector';
+import './InspectorPanels.css';
 
 function getAssetIcon(kind: SelectedAsset['kind']): JSX.Element {
   switch (kind) {
@@ -185,7 +186,7 @@ function SpeedInput({
       min={10}
       max={10000}
       step={10}
-      className="w-24 bg-editor-input bg-opacity-50 border border-editor-border rounded px-2 py-1 text-sm text-editor-text text-right focus:border-primary-500 focus:ring-1 focus:ring-primary-500 focus:outline-none"
+      className="w-24 max-w-full min-w-0 rounded border border-editor-border bg-editor-input bg-opacity-50 px-2 py-1 text-right text-sm text-editor-text focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500"
       value={localValue}
       onChange={(e) => setLocalValue(Number(e.target.value))}
       onBlur={commit}
@@ -717,7 +718,7 @@ function ClipTransformControls({
         <Maximize className="w-3 h-3" />
         Transform
       </h4>
-      <div className="grid grid-cols-2 gap-x-3 gap-y-2">
+      <div className="inspector-transform-grid grid gap-x-3 gap-y-2">
         <TransformNumberInput
           label="Position X"
           testId="clip-position-x-input"
@@ -1038,7 +1039,7 @@ export function ClipInspectorPanel({
       data-testid="inspector"
       role="complementary"
       aria-label="Properties inspector"
-      className="p-4"
+      className="inspector-responsive-container min-w-0 p-4"
     >
       <h3 className="text-sm font-semibold text-editor-text mb-4 flex items-center gap-2">
         <Film className="w-4 h-4 text-primary-500" />
@@ -1193,7 +1194,7 @@ export function ClipInspectorPanel({
           Speed
         </h4>
         <div className="space-y-3">
-          <div className="flex items-center justify-between">
+          <div className="flex min-w-0 items-center justify-between gap-3">
             <label className="text-sm text-editor-text-muted">Speed (%)</label>
             <SpeedInput
               speed={selectedClip.speed ?? 1}
@@ -1204,7 +1205,7 @@ export function ClipInspectorPanel({
               disabled={readOnly || !onClipSpeedChange}
             />
           </div>
-          <div className="grid grid-cols-5 gap-2">
+          <div className="inspector-speed-presets grid gap-2">
             {SPEED_PRESETS.map((speed) => (
               <button
                 key={speed}
@@ -1260,14 +1261,17 @@ export function ClipInspectorPanel({
               Time Remap Active
             </div>
           )}
-          <div className="flex items-center justify-between gap-3">
-            <label className="text-sm text-editor-text-muted" htmlFor="slow-motion-interpolation">
+          <div className="inspector-responsive-field min-w-0">
+            <label
+              className="shrink-0 text-sm text-editor-text-muted"
+              htmlFor="slow-motion-interpolation"
+            >
               Slow Motion
             </label>
             <select
               id="slow-motion-interpolation"
               data-testid="slow-motion-interpolation-select"
-              className="w-44 bg-editor-input bg-opacity-50 border border-editor-border rounded px-2 py-1 text-sm text-editor-text focus:border-primary-500 focus:ring-1 focus:ring-primary-500 focus:outline-none"
+              className="inspector-responsive-select rounded border border-editor-border bg-editor-input bg-opacity-50 px-2 py-1 text-sm text-editor-text focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500"
               value={selectedClip.slowMotionInterpolation ?? 'nearest'}
               onChange={(event) =>
                 onSlowMotionInterpolationChange?.(
@@ -1286,9 +1290,9 @@ export function ClipInspectorPanel({
             </select>
           </div>
           <div className="rounded border border-editor-border bg-editor-surface bg-opacity-40 p-3">
-            <div className="flex items-center justify-between mb-2">
+            <div className="mb-2 flex min-w-0 flex-wrap items-center justify-between gap-1">
               <span className="text-xs font-semibold text-editor-text-muted">Speed Ramp</span>
-              <span className="text-[11px] text-editor-text-muted">
+              <span className="min-w-0 break-words text-right text-[11px] text-editor-text-muted">
                 {getSourceDurationSec(selectedClip).toFixed(2)}s source /{' '}
                 {getEditableClipDurationSec(selectedClip, clipDuration).toFixed(2)}s timeline
               </span>
@@ -1530,7 +1534,7 @@ export function AssetInspectorPanel({
       data-testid="inspector"
       role="complementary"
       aria-label="Properties inspector"
-      className="p-4"
+      className="inspector-responsive-container min-w-0 p-4"
     >
       <h3 className="text-sm font-semibold text-editor-text mb-4 flex items-center gap-2">
         {getAssetIcon(selectedAsset.kind)}
@@ -2016,7 +2020,7 @@ export function CaptionInspectorPanel({
       data-testid="inspector"
       role="complementary"
       aria-label="Properties inspector"
-      className="p-4"
+      className="inspector-responsive-container min-w-0 p-4"
     >
       <h3 className="text-sm font-semibold text-editor-text mb-4 flex items-center gap-2">
         <Type className="w-4 h-4 text-primary-500" />
@@ -2057,14 +2061,14 @@ export function CaptionInspectorPanel({
         </InspectorSection>
 
         <InspectorSection title="Font" icon={<Type className="w-3 h-3" />}>
-          <div className="flex items-center justify-between gap-3">
-            <label className="text-xs text-editor-text-muted">Family</label>
+          <div className="inspector-responsive-field min-w-0">
+            <label className="shrink-0 text-xs text-editor-text-muted">Family</label>
             <input
               data-testid="caption-font-family-input"
               type="text"
               list="caption-font-families"
               value={captionStyle.fontFamily}
-              className="w-36 rounded border border-editor-border bg-editor-input px-2 py-1 text-xs text-editor-text focus:border-primary-500 focus:outline-none disabled:opacity-50"
+              className="inspector-responsive-font-input rounded border border-editor-border bg-editor-input px-2 py-1 text-xs text-editor-text focus:border-primary-500 focus:outline-none disabled:opacity-50"
               onChange={(event) => commitCaptionStyle({ fontFamily: event.target.value })}
               disabled={isReadOnly}
             />

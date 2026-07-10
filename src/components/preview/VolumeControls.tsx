@@ -22,6 +22,8 @@ export interface VolumeControlsProps {
   onMuteToggle?: () => void;
   /** Whether controls are disabled */
   disabled?: boolean;
+  /** Additional classes for responsive slider visibility */
+  sliderClassName?: string;
 }
 
 // =============================================================================
@@ -34,6 +36,7 @@ export function VolumeControls({
   onVolumeChange,
   onMuteToggle,
   disabled = false,
+  sliderClassName = '',
 }: VolumeControlsProps) {
   // ===========================================================================
   // Handlers
@@ -51,7 +54,7 @@ export function VolumeControls({
         onVolumeChange?.(parseFloat(e.target.value));
       }
     },
-    [disabled, onVolumeChange]
+    [disabled, onVolumeChange],
   );
 
   // ===========================================================================
@@ -94,9 +97,9 @@ export function VolumeControls({
         onChange={handleVolumeChange}
         disabled={disabled}
         aria-label="Volume"
-        className="w-16 h-1 bg-white/30 rounded-full appearance-none cursor-pointer disabled:cursor-not-allowed
+        className={`w-16 h-1 bg-white/30 rounded-full appearance-none cursor-pointer disabled:cursor-not-allowed
           [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-3 [&::-webkit-slider-thumb]:h-3
-          [&::-webkit-slider-thumb]:bg-white [&::-webkit-slider-thumb]:rounded-full"
+          [&::-webkit-slider-thumb]:bg-white [&::-webkit-slider-thumb]:rounded-full ${sliderClassName}`}
       />
     </div>
   );

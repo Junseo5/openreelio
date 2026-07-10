@@ -124,7 +124,9 @@ describe('getUserFriendlyError', () => {
     });
 
     it('should handle project with unsaved changes blocking open', () => {
-      const result = getUserFriendlyError('A project is already open with unsaved changes. Save it before opening another project.');
+      const result = getUserFriendlyError(
+        'A project is already open with unsaved changes. Save it before opening another project.',
+      );
       expect(result).toBe('Please save your current project before opening another one.');
     });
 
@@ -248,6 +250,16 @@ describe('getUserFriendlyError', () => {
       expect(result).toMatch(/could not complete the operation/i);
       expect(result).toMatch(/xyz123/);
     });
+
+    it('should hide unknown backend details in production-facing messages', () => {
+      const result = getUserFriendlyError('token=secret /private/project/path', {
+        includeTechnicalDetails: false,
+      });
+
+      expect(result).toBe('Could not complete the operation.');
+      expect(result).not.toContain('secret');
+      expect(result).not.toContain('/private/project/path');
+    });
   });
 });
 
@@ -307,7 +319,9 @@ describe('createErrorHandler', () => {
 
     handler('Render failed: out of memory');
 
-    expect(showError).toHaveBeenCalledWith('Export failed. Please check your settings and try again.');
+    expect(showError).toHaveBeenCalledWith(
+      'Export failed. Please check your settings and try again.',
+    );
     expect(showWarning).not.toHaveBeenCalled();
   });
 
@@ -372,7 +386,9 @@ describe('Edge Cases', () => {
 
     it('should handle file in use (os error 32)', () => {
       const result = getUserFriendlyError('Cannot delete: os error 32');
-      expect(result).toBe('The file is in use by another program. Please close other apps and try again.');
+      expect(result).toBe(
+        'The file is in use by another program. Please close other apps and try again.',
+      );
     });
 
     it('should handle generic permission denied', () => {
@@ -382,7 +398,9 @@ describe('Edge Cases', () => {
 
     it('should handle Windows "Access is denied"', () => {
       const result = getUserFriendlyError('Access is denied. (os error 5)');
-      expect(result).toBe('Access denied. Please choose a folder you can write to (e.g., Documents).');
+      expect(result).toBe(
+        'Access denied. Please choose a folder you can write to (e.g., Documents).',
+      );
     });
   });
 

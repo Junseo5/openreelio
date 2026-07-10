@@ -12,6 +12,7 @@ import type { ToolCallPart } from '@/agents/engine/core/conversation';
 interface ToolCallPartRendererProps {
   part: ToolCallPart;
   className?: string;
+  diagnosticsEnabled?: boolean;
 }
 
 const statusConfig: Record<
@@ -24,14 +25,46 @@ const statusConfig: Record<
   failed: { label: 'Issue', color: 'text-yellow-400', icon: XCircle },
 };
 
-export function ToolCallPartRenderer({ part, className = '' }: ToolCallPartRendererProps) {
+const userStatusLabels: Record<ToolCallPart['status'], string> = {
+  pending: 'Action queued',
+  running: 'Working...',
+  completed: 'Action completed',
+  failed: 'Action needs attention',
+};
+
+export function ToolCallPartRenderer({
+  part,
+  className = '',
+  diagnosticsEnabled = true,
+}: ToolCallPartRendererProps) {
   const [isExpanded, setIsExpanded] = useState(false);
   const status = statusConfig[part.status];
   const StatusIcon = status.icon;
+  const showDiagnostics = import.meta.env.DEV && diagnosticsEnabled;
+
+  if (!showDiagnostics) {
+    return (
+      <div
+        className={`flex min-w-0 max-w-full items-center gap-2 rounded-lg px-3 py-1.5 ${className}`}
+        data-testid="tool-call-part"
+        role="status"
+      >
+        <StatusIcon
+          className={`h-3.5 w-3.5 shrink-0 ${status.color} ${
+            part.status === 'running' ? 'animate-spin' : ''
+          }`}
+          aria-hidden="true"
+        />
+        <span className="min-w-0 break-words text-xs text-text-secondary [overflow-wrap:anywhere]">
+          {userStatusLabels[part.status]}
+        </span>
+      </div>
+    );
+  }
 
   return (
     <div
-      className={`border border-border-subtle rounded-lg overflow-hidden ${className}`}
+      className={`min-w-0 max-w-full overflow-hidden rounded-lg border border-border-subtle ${className}`}
       data-testid="tool-call-part"
     >
       <button
@@ -46,8 +79,10 @@ export function ToolCallPartRenderer({ part, className = '' }: ToolCallPartRende
           />
           {status.label}
         </span>
-        <span className="text-xs font-mono text-text-secondary">{part.tool}</span>
-        <span className="text-xs text-text-tertiary truncate flex-1">{part.description}</span>
+        <span className="min-w-0 truncate font-mono text-xs text-text-secondary">{part.tool}</span>
+        <span className="min-w-0 flex-1 truncate text-xs text-text-tertiary">
+          {part.description}
+        </span>
         {part.status === 'running' && (
           <span className="w-2 h-2 bg-primary-500 rounded-full animate-pulse" />
         )}
@@ -55,7 +90,7 @@ export function ToolCallPartRenderer({ part, className = '' }: ToolCallPartRende
 
       {isExpanded && (
         <div className="px-3 pb-2 border-t border-border-subtle">
-          <pre className="text-xs text-text-tertiary mt-1.5 overflow-x-auto whitespace-pre-wrap font-mono">
+          <pre className="mt-1.5 max-w-full overflow-x-auto whitespace-pre-wrap break-all font-mono text-xs text-text-tertiary [overflow-wrap:anywhere]">
             {JSON.stringify(part.args, null, 2)}
           </pre>
         </div>

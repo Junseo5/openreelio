@@ -276,7 +276,7 @@ export function FullscreenPreview({
       onPipToggle,
       onPlaybackRateChange,
       showControlsTemporarily,
-    ]
+    ],
   );
 
   // ===========================================================================
@@ -311,17 +311,20 @@ export function FullscreenPreview({
       const time = parseFloat(e.target.value);
       onSeek(time);
     },
-    [onSeek]
+    [onSeek],
   );
 
   // ===========================================================================
   // Speed Menu
   // ===========================================================================
 
-  const handleSpeedClick = useCallback((speed: number) => {
-    onPlaybackRateChange(speed);
-    setShowSpeedMenu(false);
-  }, [onPlaybackRateChange]);
+  const handleSpeedClick = useCallback(
+    (speed: number) => {
+      onPlaybackRateChange(speed);
+      setShowSpeedMenu(false);
+    },
+    [onPlaybackRateChange],
+  );
 
   // ===========================================================================
   // Effects
@@ -392,6 +395,7 @@ export function FullscreenPreview({
           data-testid="center-play-button"
           className="absolute inset-0 flex items-center justify-center cursor-pointer"
           onClick={onPlayPause}
+          aria-label="Play video"
         >
           <div className="w-20 h-20 rounded-full bg-white/20 backdrop-blur flex items-center justify-center hover:bg-white/30 transition-colors">
             <Play className="w-10 h-10 text-white ml-1" />
@@ -605,8 +609,8 @@ export function FullscreenPreview({
 
       {/* Keyboard hints overlay (shown briefly on focus) */}
       <div className="sr-only">
-        Keyboard shortcuts: Space to play/pause, Arrow keys to seek and adjust volume,
-        F for fullscreen, M to mute, comma and period for frame stepping
+        Keyboard shortcuts: Space to play/pause, Arrow keys to seek and adjust volume, F for
+        fullscreen, M to mute, comma and period for frame stepping
       </div>
     </div>
   );

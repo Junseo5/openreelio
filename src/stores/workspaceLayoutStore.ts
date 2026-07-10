@@ -78,8 +78,8 @@ export interface PanelMeta {
 // Constants
 // =============================================================================
 
-/** Panel metadata registry */
-export const PANEL_REGISTRY: Record<PanelId, PanelMeta> = {
+/** Complete panel metadata registry, including development-only panels. */
+const ALL_PANEL_REGISTRY: Record<PanelId, PanelMeta> = {
   explorer: { id: 'explorer', label: 'Project Explorer', icon: 'FolderOpen', minWidth: 200 },
   'source-monitor': {
     id: 'source-monitor',
@@ -118,6 +118,19 @@ export const PANEL_REGISTRY: Record<PanelId, PanelMeta> = {
   comparison: { id: 'comparison', label: 'Comparison', icon: 'GitCompareArrows', minHeight: 80 },
   generation: { id: 'generation', label: 'Generate', icon: 'Sparkles', minHeight: 80 },
 };
+
+export type PanelRegistry = Partial<Record<PanelId, PanelMeta>>;
+
+export function createPanelRegistry(isDevelopment: boolean = import.meta.env.DEV): PanelRegistry {
+  const registry: PanelRegistry = { ...ALL_PANEL_REGISTRY };
+  if (!isDevelopment) {
+    delete registry.performance;
+  }
+  return registry;
+}
+
+/** Panel metadata available in the current build. */
+export const PANEL_REGISTRY: PanelRegistry = createPanelRegistry();
 
 /** Default zone sizes */
 const DEFAULT_SIZES: ZoneSizes = {
@@ -410,6 +423,11 @@ interface WorkspaceLayoutActions {
 
 export type WorkspaceLayoutStore = WorkspaceLayoutState & WorkspaceLayoutActions;
 
+type PersistedWorkspaceLayoutState = Pick<
+  WorkspaceLayoutState,
+  'layout' | 'activePresetId' | 'customPresets'
+>;
+
 // =============================================================================
 // Helpers
 // =============================================================================
@@ -434,7 +452,7 @@ export function revealWorkspacePanel(
   defaultZoneId: DockZoneId,
   options: { moveToDefaultZone?: boolean } = {},
 ): DockZoneId | null {
-  if (INTERNAL_ONLY_PANEL_IDS.has(panelId)) {
+  if (!PANEL_REGISTRY[panelId] || INTERNAL_ONLY_PANEL_IDS.has(panelId)) {
     return null;
   }
 
@@ -462,12 +480,12 @@ export function revealWorkspacePanel(
   return targetZoneId;
 }
 
-function normalizeZone(zone: DockZone): void {
+function normalizeZone(zone: DockZone, panelRegistry: PanelRegistry): void {
   const seen = new Set<PanelId>();
   const videoGenerationEnabled = isVideoGenerationEnabled();
 
   zone.panelIds = zone.panelIds.filter((panelId): panelId is PanelId => {
-    if (!(panelId in PANEL_REGISTRY)) {
+    if (!panelRegistry[panelId]) {
       return false;
     }
     if (panelId === 'generation' && !videoGenerationEnabled) {
@@ -509,11 +527,14 @@ function ensurePanelInLayout(
   return targetZoneId;
 }
 
-function normalizeWorkspaceLayout(layout: WorkspaceLayout): WorkspaceLayout {
+export function normalizeWorkspaceLayout(
+  layout: WorkspaceLayout,
+  panelRegistry: PanelRegistry = PANEL_REGISTRY,
+): WorkspaceLayout {
   const normalized = JSON.parse(JSON.stringify(layout)) as WorkspaceLayout;
 
   for (const zone of Object.values(normalized.zones)) {
-    normalizeZone(zone);
+    normalizeZone(zone, panelRegistry);
     if (zone.activePanelId && NON_PERSISTED_PANEL_IDS.has(zone.activePanelId)) {
       zone.activePanelId = zone.panelIds[0] ?? null;
     }
@@ -598,7 +619,7 @@ export const useWorkspaceLayoutStore = create<WorkspaceLayoutStore>()(
 
       restorePanel: (panelId, targetZoneId = 'right') => {
         set((state) => {
-          if (INTERNAL_ONLY_PANEL_IDS.has(panelId)) {
+          if (!PANEL_REGISTRY[panelId] || INTERNAL_ONLY_PANEL_IDS.has(panelId)) {
             return;
           }
 
@@ -789,6 +810,19 @@ export const useWorkspaceLayoutStore = create<WorkspaceLayoutStore>()(
         activePresetId: state.activePresetId ?? null,
         customPresets: normalizeCustomPresets(state.customPresets),
       }),
+      merge: (persistedState, currentState) => {
+        const persisted = persistedState as Partial<PersistedWorkspaceLayoutState>;
+        return {
+          ...currentState,
+          layout: persisted.layout
+            ? normalizeWorkspaceLayout(persisted.layout)
+            : currentState.layout,
+          activePresetId: persisted.activePresetId ?? null,
+          customPresets: normalizeCustomPresets(persisted.customPresets),
+          isDragging: false,
+          draggedPanelId: null,
+        };
+      },
       migrate: (persisted, version) => {
         if (version === 1) {
           // v1 only had layout — add preset fields

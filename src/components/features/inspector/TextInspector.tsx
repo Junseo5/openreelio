@@ -543,7 +543,7 @@ export function TextInspector({
       data-testid="text-inspector"
       role="complementary"
       aria-label="Text properties inspector"
-      className="p-4 overflow-y-auto"
+      className="min-w-0 overflow-y-auto p-4"
     >
       {/* Header */}
       <div className="flex items-center justify-between mb-4">

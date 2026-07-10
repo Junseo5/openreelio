@@ -21,6 +21,7 @@ interface ExternalAgentRuntimeSettingsProps {
   settings: AISettings;
   onUpdate: (values: Partial<AISettings>) => void;
   disabled?: boolean;
+  diagnosticsEnabled?: boolean;
 }
 
 interface ConfigureCodexAgentRuntimeResult {
@@ -123,12 +124,23 @@ function formatAuthStatus(authStatus?: string | null): string {
   return 'Checking';
 }
 
-function formatActionError(error: unknown): string {
+function formatActionError(error: unknown, showDiagnostics: boolean): string {
   const message = error instanceof Error ? error.message : String(error);
-  if (isLauncherExecutableError(message)) {
-    return 'The selected Codex launcher is not executable on this OS. OpenReelio needs a native Codex CLI launcher such as codex.cmd or codex.exe.';
+  return showDiagnostics
+    ? message
+    : (getSafeRuntimeGuidance(message) ??
+        'The Codex setup action could not be completed. Check your connection and try again.');
+}
+
+function formatRuntimeMessage(
+  message: string | null | undefined,
+  fallback: string,
+  showDiagnostics: boolean,
+): string {
+  if (showDiagnostics && message) {
+    return message;
   }
-  return message;
+  return getSafeRuntimeGuidance(message) ?? fallback;
 }
 
 function isLauncherExecutableError(message?: string | null): boolean {
@@ -139,6 +151,24 @@ function isLauncherExecutableError(message?: string | null): boolean {
     normalized.includes('%1') ||
     normalized.includes('not executable on this os')
   );
+}
+
+function getSafeRuntimeGuidance(message?: string | null): string | null {
+  if (!message) {
+    return null;
+  }
+  if (isLauncherExecutableError(message)) {
+    return 'Codex could not be started on this device. Reinstall Codex and make sure its native launcher is available.';
+  }
+  if (
+    /npm was not found|install node\.?(?:js)? with npm|node\.?(?:js)?[^.]*\bnpm\b/i.test(message)
+  ) {
+    return 'Node.js with npm is required to install or update Codex. Install Node.js, then try again.';
+  }
+  if (/codex(?: cli)? (?:was |is )?not (?:installed|found)/i.test(message)) {
+    return 'Codex is not installed yet. Install Codex to continue.';
+  }
+  return null;
 }
 
 function parseCodexCliVersion(label?: string | null): { major: number; minor: number } | null {
@@ -186,7 +216,9 @@ export function ExternalAgentRuntimeSettings({
   settings,
   onUpdate,
   disabled = false,
+  diagnosticsEnabled = true,
 }: ExternalAgentRuntimeSettingsProps): JSX.Element {
+  const showDiagnostics = import.meta.env.DEV && diagnosticsEnabled;
   const projectPath = useProjectStore((state) => state.meta?.path ?? null);
   const [setupResult, setSetupResult] = useState<ConfigureCodexAgentRuntimeResult | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
@@ -324,15 +356,21 @@ export function ExternalAgentRuntimeSettings({
         !result.requiresLogin &&
         result.message
       ) {
-        setActionError(result.message);
+        setActionError(
+          formatRuntimeMessage(
+            result.message,
+            'Codex setup is not ready yet. Try reconnecting.',
+            showDiagnostics,
+          ),
+        );
       }
       refreshExternalAgentStatus();
     } catch (error) {
-      setActionError(formatActionError(error));
+      setActionError(formatActionError(error, showDiagnostics));
     } finally {
       setIsConfiguring(false);
     }
-  }, [codexSelected, nativeToolsReady, projectPath, refreshExternalAgentStatus]);
+  }, [codexSelected, nativeToolsReady, projectPath, refreshExternalAgentStatus, showDiagnostics]);
 
   useEffect(() => {
     if (!codexSelected) {
@@ -410,7 +448,9 @@ export function ExternalAgentRuntimeSettings({
     try {
       const result = await invoke<CodexAgentLoginResult>('start_codex_login');
       if (!result.success) {
-        setActionError(result.message ?? 'Codex sign-in did not complete.');
+        setActionError(
+          formatRuntimeMessage(result.message, 'Codex sign-in did not complete.', showDiagnostics),
+        );
         refreshExternalAgentStatus();
         return;
       }
@@ -418,11 +458,11 @@ export function ExternalAgentRuntimeSettings({
       await configureCodex();
       refreshExternalAgentStatus();
     } catch (error) {
-      setActionError(formatActionError(error));
+      setActionError(formatActionError(error, showDiagnostics));
     } finally {
       setIsSigningIn(false);
     }
-  }, [applySuccessfulCodexAuthResult, configureCodex, refreshExternalAgentStatus]);
+  }, [applySuccessfulCodexAuthResult, configureCodex, refreshExternalAgentStatus, showDiagnostics]);
 
   const handleSignOut = useCallback(async () => {
     setIsSigningOut(true);
@@ -430,7 +470,9 @@ export function ExternalAgentRuntimeSettings({
     try {
       const result = await invoke<CodexAgentLogoutResult>('logout_codex_agent_runtime');
       if (!result.success) {
-        setActionError(result.message ?? 'Codex sign-out did not complete.');
+        setActionError(
+          formatRuntimeMessage(result.message, 'Codex sign-out did not complete.', showDiagnostics),
+        );
         refreshExternalAgentStatus();
         return;
       }
@@ -438,11 +480,11 @@ export function ExternalAgentRuntimeSettings({
       await configureCodex();
       refreshExternalAgentStatus();
     } catch (error) {
-      setActionError(formatActionError(error));
+      setActionError(formatActionError(error, showDiagnostics));
     } finally {
       setIsSigningOut(false);
     }
-  }, [applySuccessfulCodexAuthResult, configureCodex, refreshExternalAgentStatus]);
+  }, [applySuccessfulCodexAuthResult, configureCodex, refreshExternalAgentStatus, showDiagnostics]);
 
   const handleInstall = useCallback(async () => {
     setIsInstalling(true);
@@ -450,7 +492,13 @@ export function ExternalAgentRuntimeSettings({
     try {
       const result = await invoke<CodexCliInstallResult>('install_codex_cli');
       if (!result.success) {
-        setActionError(result.message ?? 'Codex CLI installation did not complete.');
+        setActionError(
+          formatRuntimeMessage(
+            result.message,
+            'Codex installation did not complete.',
+            showDiagnostics,
+          ),
+        );
         refreshExternalAgentStatus();
         return;
       }
@@ -458,11 +506,11 @@ export function ExternalAgentRuntimeSettings({
       await configureCodex();
       refreshExternalAgentStatus();
     } catch (error) {
-      setActionError(formatActionError(error));
+      setActionError(formatActionError(error, showDiagnostics));
     } finally {
       setIsInstalling(false);
     }
-  }, [configureCodex, loadCodexModels, refreshExternalAgentStatus]);
+  }, [configureCodex, loadCodexModels, refreshExternalAgentStatus, showDiagnostics]);
 
   const handleUpdate = useCallback(async () => {
     setIsUpdating(true);
@@ -470,7 +518,9 @@ export function ExternalAgentRuntimeSettings({
     try {
       const result = await invoke<CodexCliUpdateResult>('update_codex_cli');
       if (!result.success) {
-        setActionError(result.message ?? 'Codex CLI update did not complete.');
+        setActionError(
+          formatRuntimeMessage(result.message, 'Codex update did not complete.', showDiagnostics),
+        );
         refreshExternalAgentStatus();
         return;
       }
@@ -478,11 +528,11 @@ export function ExternalAgentRuntimeSettings({
       await configureCodex();
       refreshExternalAgentStatus();
     } catch (error) {
-      setActionError(formatActionError(error));
+      setActionError(formatActionError(error, showDiagnostics));
     } finally {
       setIsUpdating(false);
     }
-  }, [configureCodex, loadCodexModels, refreshExternalAgentStatus]);
+  }, [configureCodex, loadCodexModels, refreshExternalAgentStatus, showDiagnostics]);
 
   const statusLine = useMemo(() => {
     if (!codexSelected) return 'OpenReelio will use the API provider and model below.';
@@ -493,17 +543,24 @@ export function ExternalAgentRuntimeSettings({
     if (isConfiguring) return 'Checking Codex account access...';
     if (!hasProject) return 'Open a project to attach OpenReelio tools.';
     if (!codexInstalled) {
-      return setupResult?.message ?? codexRuntime?.reason ?? 'Codex CLI was not found.';
+      return showDiagnostics
+        ? (setupResult?.message ?? codexRuntime?.reason ?? 'Codex was not found.')
+        : (getSafeRuntimeGuidance(setupResult?.message ?? codexRuntime?.reason) ??
+            'Codex is not installed yet.');
     }
     if (runtimeReady)
       return 'Codex is signed in. OpenReelio tools will start when a session begins.';
     if (requiresLogin) return 'Sign in to Codex to continue.';
     if (effectiveAuthStatus === 'error') {
-      return (
-        setupResult?.message ?? codexRuntime?.reason ?? 'Codex authentication could not be read.'
-      );
+      return showDiagnostics
+        ? (setupResult?.message ??
+            codexRuntime?.reason ??
+            'Codex authentication could not be read.')
+        : 'Codex sign-in status could not be checked.';
     }
-    return setupResult?.message ?? codexRuntime?.reason ?? 'Codex is not ready yet.';
+    return showDiagnostics
+      ? (setupResult?.message ?? codexRuntime?.reason ?? 'Codex is not ready yet.')
+      : 'Codex is not ready yet.';
   }, [
     codexRuntime?.reason,
     codexSelected,
@@ -517,6 +574,7 @@ export function ExternalAgentRuntimeSettings({
     isUpdating,
     requiresLogin,
     runtimeReady,
+    showDiagnostics,
     setupResult?.message,
   ]);
 
@@ -605,17 +663,23 @@ export function ExternalAgentRuntimeSettings({
                 <SetupPill label="OpenReelio tools" ready={toolsReady} pending={isConfiguring} />
               </div>
               <p className="mt-2 text-xs leading-5 text-editor-text-muted">{statusLine}</p>
-              {codexVersion && (
-                <p className="mt-1 truncate text-[11px] text-editor-text-muted">{codexVersion}</p>
-              )}
-              <p className="mt-1 truncate text-[11px] text-editor-text-muted">
-                Storage: OpenReelio-managed Codex profile
-                {runtimeSource ? ` (${runtimeSource})` : ''}
-              </p>
-              {codexHome && (
-                <p className="mt-1 truncate text-[11px] text-editor-text-muted">
-                  CODEX_HOME: {codexHome}
-                </p>
+              {showDiagnostics && (
+                <div data-testid="codex-runtime-diagnostics">
+                  {codexVersion && (
+                    <p className="mt-1 truncate text-[11px] text-editor-text-muted">
+                      {codexVersion}
+                    </p>
+                  )}
+                  <p className="mt-1 truncate text-[11px] text-editor-text-muted">
+                    Storage: OpenReelio-managed Codex profile
+                    {runtimeSource ? ` (${runtimeSource})` : ''}
+                  </p>
+                  {codexHome && (
+                    <p className="mt-1 truncate text-[11px] text-editor-text-muted">
+                      CODEX_HOME: {codexHome}
+                    </p>
+                  )}
+                </div>
               )}
             </div>
 

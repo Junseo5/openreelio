@@ -16,6 +16,7 @@ import {
 import { AUDIO_EXPORT_FORMATS, EXPORT_PRESETS, TIMELINE_EXPORT_FORMATS } from './constants';
 import type { ExportDialogProps } from './types';
 import { commands } from '@/bindings';
+import { ModalShell } from '@/components/ui';
 
 // Re-export types for backward compatibility
 export type { ExportPreset, ExportStatus, ExportDialogProps } from './types';
@@ -130,19 +131,15 @@ export function ExportDialog({
     exportKind === 'audio' ? Music : exportKind === 'timeline' ? FileCode : Download;
 
   return (
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/60"
-      onClick={(e) => e.target === e.currentTarget && handleClose()}
-    >
-      <div
-        ref={dialogRef}
-        data-testid="export-dialog"
-        role="dialog"
-        aria-labelledby="export-dialog-title"
-        aria-modal="true"
-        className="mx-4 w-full max-w-lg rounded-xl border border-editor-border bg-editor-panel shadow-2xl"
-        onKeyDown={handleKeyDown}
-      >
+    <ModalShell
+      ref={dialogRef}
+      ariaLabelledBy="export-dialog-title"
+      onRequestClose={handleClose}
+      onKeyDown={handleKeyDown}
+      testId="export-dialog"
+      widthClassName="max-w-lg"
+      dialogClassName="rounded-xl border border-editor-border bg-editor-panel shadow-2xl"
+      header={
         <div className="flex items-center justify-between border-b border-editor-border px-6 py-4">
           <div className="flex items-center gap-3">
             <ExportTitleIcon className="h-5 w-5 text-primary-500" />
@@ -159,186 +156,10 @@ export function ExportDialog({
             <X className="h-5 w-5" />
           </button>
         </div>
-
-        <div className="space-y-4 px-6 py-4">
-          {showSettings && !renderQueue.isBatchRendering ? (
-            <>
-              <div className="grid grid-cols-3 gap-2 rounded-lg bg-editor-bg p-1">
-                <button
-                  type="button"
-                  onClick={() => setExportKind('video')}
-                  disabled={isBusy}
-                  className={`rounded-md px-3 py-2 text-sm font-medium transition-colors ${
-                    exportKind === 'video'
-                      ? 'bg-primary-600 text-white'
-                      : 'text-editor-text-muted hover:bg-editor-panel'
-                  }`}
-                >
-                  Video
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setExportKind('audio')}
-                  disabled={isBusy}
-                  className={`rounded-md px-3 py-2 text-sm font-medium transition-colors ${
-                    exportKind === 'audio'
-                      ? 'bg-primary-600 text-white'
-                      : 'text-editor-text-muted hover:bg-editor-panel'
-                  }`}
-                >
-                  Audio
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setExportKind('timeline')}
-                  disabled={isBusy}
-                  className={`rounded-md px-3 py-2 text-sm font-medium transition-colors ${
-                    exportKind === 'timeline'
-                      ? 'bg-primary-600 text-white'
-                      : 'text-editor-text-muted hover:bg-editor-panel'
-                  }`}
-                >
-                  Timeline
-                </button>
-              </div>
-
-              <div className="flex items-center justify-between gap-3 rounded-lg bg-editor-bg p-3">
-                <div>
-                  <p className="mb-1 text-xs text-editor-text-muted">Sequence</p>
-                  <p className="text-sm font-medium text-editor-text">{sequenceName}</p>
-                  {exportKind === 'audio' && (
-                    <p className="mt-1 text-xs text-editor-text-muted">
-                      Mix down enabled audio tracks to a single master file.
-                    </p>
-                  )}
-                  {exportKind === 'timeline' && (
-                    <p className="mt-1 text-xs text-editor-text-muted">
-                      Export an editable timeline interchange file.
-                    </p>
-                  )}
-                </div>
-                {exportKind === 'video' ? (
-                  <div className="flex items-center gap-1.5 text-xs text-editor-text-muted">
-                    {encoderInfo.hasHardware ? (
-                      <Zap className="h-3.5 w-3.5 text-yellow-500" />
-                    ) : (
-                      <Cpu className="h-3.5 w-3.5" />
-                    )}
-                    <span>{encoderInfo.name}</span>
-                  </div>
-                ) : (
-                  <div className="flex items-center gap-1.5 text-xs text-editor-text-muted">
-                    {exportKind === 'audio' ? (
-                      <>
-                        <Music className="h-3.5 w-3.5" />
-                        <span>Audio-only mixdown</span>
-                      </>
-                    ) : (
-                      <>
-                        <FileCode className="h-3.5 w-3.5" />
-                        <span>Editable export</span>
-                      </>
-                    )}
-                  </div>
-                )}
-              </div>
-
-              {exportKind === 'video' ? (
-                <div>
-                  <label className="mb-2 block text-sm font-medium text-editor-text">
-                    Export Preset
-                  </label>
-                  <div className="grid max-h-48 grid-cols-2 gap-2 overflow-y-auto">
-                    {EXPORT_PRESETS.map((preset) => (
-                      <PresetOption
-                        key={preset.id}
-                        preset={preset}
-                        isSelected={selectedPreset === preset.id}
-                        onSelect={() => setSelectedPreset(preset.id)}
-                        disabled={isBusy}
-                      />
-                    ))}
-                  </div>
-                </div>
-              ) : exportKind === 'audio' ? (
-                <div>
-                  <label className="mb-2 block text-sm font-medium text-editor-text">
-                    Audio Format
-                  </label>
-                  <div className="grid max-h-48 grid-cols-2 gap-2 overflow-y-auto">
-                    {AUDIO_EXPORT_FORMATS.map((format) => (
-                      <PresetOption
-                        key={format.id}
-                        preset={format}
-                        isSelected={selectedAudioFormat === format.id}
-                        onSelect={() => setSelectedAudioFormat(format.id)}
-                        disabled={isBusy}
-                      />
-                    ))}
-                  </div>
-                </div>
-              ) : (
-                <div>
-                  <label className="mb-2 block text-sm font-medium text-editor-text">
-                    Timeline Format
-                  </label>
-                  <div className="grid max-h-48 grid-cols-2 gap-2 overflow-y-auto">
-                    {TIMELINE_EXPORT_FORMATS.map((format) => (
-                      <PresetOption
-                        key={format.id}
-                        preset={format}
-                        isSelected={selectedTimelineFormat === format.id}
-                        onSelect={() => setSelectedTimelineFormat(format.id)}
-                        disabled={isBusy}
-                      />
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {exportKind !== 'timeline' && (
-                <RangeControls
-                  useRange={renderQueue.useRange}
-                  onUseRangeChange={renderQueue.setUseRange}
-                  inPoint={renderQueue.inPoint}
-                  onInPointChange={renderQueue.setInPoint}
-                  outPoint={renderQueue.outPoint}
-                  onOutPointChange={renderQueue.setOutPoint}
-                  disabled={isBusy}
-                />
-              )}
-
-              <OutputLocationField
-                outputPath={outputPath}
-                onBrowse={() => void handleBrowse()}
-                disabled={isBusy}
-              />
-
-              {exportKind === 'video' && (
-                <RenderQueuePanel
-                  queue={renderQueue.queue}
-                  isBatchRendering={renderQueue.isBatchRendering}
-                  batchProgress={renderQueue.batchProgress}
-                  onCancelJob={(jobId) => void renderQueue.cancelJob(jobId)}
-                  onRemoveItem={renderQueue.removeFromQueue}
-                />
-              )}
-            </>
-          ) : renderQueue.isBatchRendering ? (
-            <RenderQueuePanel
-              queue={renderQueue.queue}
-              isBatchRendering={renderQueue.isBatchRendering}
-              batchProgress={renderQueue.batchProgress}
-              onCancelJob={(jobId) => void renderQueue.cancelJob(jobId)}
-              onRemoveItem={renderQueue.removeFromQueue}
-            />
-          ) : (
-            <ProgressDisplay status={status} onClose={handleClose} onRetry={handleRetry} />
-          )}
-        </div>
-
-        {showSettings && !renderQueue.isBatchRendering && (
-          <div className="flex justify-between rounded-b-xl border-t border-editor-border bg-editor-sidebar/50 px-6 py-4">
+      }
+      footer={
+        showSettings && !renderQueue.isBatchRendering ? (
+          <div className="flex flex-col gap-3 rounded-b-xl border-t border-editor-border bg-editor-sidebar/50 px-6 py-4 sm:flex-row sm:items-center sm:justify-between">
             {exportKind === 'video' ? (
               <button
                 type="button"
@@ -354,7 +175,7 @@ export function ExportDialog({
               <div />
             )}
 
-            <div className="flex gap-3">
+            <div className="flex flex-wrap justify-end gap-2 sm:gap-3">
               {exportKind === 'video' && hasPendingItems && (
                 <button
                   type="button"
@@ -390,8 +211,185 @@ export function ExportDialog({
               </button>
             </div>
           </div>
+        ) : null
+      }
+    >
+      <div className="space-y-4 px-6 py-4">
+        {showSettings && !renderQueue.isBatchRendering ? (
+          <>
+            <div className="grid grid-cols-3 gap-2 rounded-lg bg-editor-bg p-1">
+              <button
+                type="button"
+                onClick={() => setExportKind('video')}
+                disabled={isBusy}
+                className={`rounded-md px-3 py-2 text-sm font-medium transition-colors ${
+                  exportKind === 'video'
+                    ? 'bg-primary-600 text-white'
+                    : 'text-editor-text-muted hover:bg-editor-panel'
+                }`}
+              >
+                Video
+              </button>
+              <button
+                type="button"
+                onClick={() => setExportKind('audio')}
+                disabled={isBusy}
+                className={`rounded-md px-3 py-2 text-sm font-medium transition-colors ${
+                  exportKind === 'audio'
+                    ? 'bg-primary-600 text-white'
+                    : 'text-editor-text-muted hover:bg-editor-panel'
+                }`}
+              >
+                Audio
+              </button>
+              <button
+                type="button"
+                onClick={() => setExportKind('timeline')}
+                disabled={isBusy}
+                className={`rounded-md px-3 py-2 text-sm font-medium transition-colors ${
+                  exportKind === 'timeline'
+                    ? 'bg-primary-600 text-white'
+                    : 'text-editor-text-muted hover:bg-editor-panel'
+                }`}
+              >
+                Timeline
+              </button>
+            </div>
+
+            <div className="flex items-center justify-between gap-3 rounded-lg bg-editor-bg p-3">
+              <div>
+                <p className="mb-1 text-xs text-editor-text-muted">Sequence</p>
+                <p className="text-sm font-medium text-editor-text">{sequenceName}</p>
+                {exportKind === 'audio' && (
+                  <p className="mt-1 text-xs text-editor-text-muted">
+                    Mix down enabled audio tracks to a single master file.
+                  </p>
+                )}
+                {exportKind === 'timeline' && (
+                  <p className="mt-1 text-xs text-editor-text-muted">
+                    Export an editable timeline interchange file.
+                  </p>
+                )}
+              </div>
+              {exportKind === 'video' ? (
+                <div className="flex items-center gap-1.5 text-xs text-editor-text-muted">
+                  {encoderInfo.hasHardware ? (
+                    <Zap className="h-3.5 w-3.5 text-yellow-500" />
+                  ) : (
+                    <Cpu className="h-3.5 w-3.5" />
+                  )}
+                  <span>{encoderInfo.name}</span>
+                </div>
+              ) : (
+                <div className="flex items-center gap-1.5 text-xs text-editor-text-muted">
+                  {exportKind === 'audio' ? (
+                    <>
+                      <Music className="h-3.5 w-3.5" />
+                      <span>Audio-only mixdown</span>
+                    </>
+                  ) : (
+                    <>
+                      <FileCode className="h-3.5 w-3.5" />
+                      <span>Editable export</span>
+                    </>
+                  )}
+                </div>
+              )}
+            </div>
+
+            {exportKind === 'video' ? (
+              <div>
+                <label className="mb-2 block text-sm font-medium text-editor-text">
+                  Export Preset
+                </label>
+                <div className="grid max-h-48 grid-cols-2 gap-2 overflow-y-auto">
+                  {EXPORT_PRESETS.map((preset) => (
+                    <PresetOption
+                      key={preset.id}
+                      preset={preset}
+                      isSelected={selectedPreset === preset.id}
+                      onSelect={() => setSelectedPreset(preset.id)}
+                      disabled={isBusy}
+                    />
+                  ))}
+                </div>
+              </div>
+            ) : exportKind === 'audio' ? (
+              <div>
+                <label className="mb-2 block text-sm font-medium text-editor-text">
+                  Audio Format
+                </label>
+                <div className="grid max-h-48 grid-cols-2 gap-2 overflow-y-auto">
+                  {AUDIO_EXPORT_FORMATS.map((format) => (
+                    <PresetOption
+                      key={format.id}
+                      preset={format}
+                      isSelected={selectedAudioFormat === format.id}
+                      onSelect={() => setSelectedAudioFormat(format.id)}
+                      disabled={isBusy}
+                    />
+                  ))}
+                </div>
+              </div>
+            ) : (
+              <div>
+                <label className="mb-2 block text-sm font-medium text-editor-text">
+                  Timeline Format
+                </label>
+                <div className="grid max-h-48 grid-cols-2 gap-2 overflow-y-auto">
+                  {TIMELINE_EXPORT_FORMATS.map((format) => (
+                    <PresetOption
+                      key={format.id}
+                      preset={format}
+                      isSelected={selectedTimelineFormat === format.id}
+                      onSelect={() => setSelectedTimelineFormat(format.id)}
+                      disabled={isBusy}
+                    />
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {exportKind !== 'timeline' && (
+              <RangeControls
+                useRange={renderQueue.useRange}
+                onUseRangeChange={renderQueue.setUseRange}
+                inPoint={renderQueue.inPoint}
+                onInPointChange={renderQueue.setInPoint}
+                outPoint={renderQueue.outPoint}
+                onOutPointChange={renderQueue.setOutPoint}
+                disabled={isBusy}
+              />
+            )}
+
+            <OutputLocationField
+              outputPath={outputPath}
+              onBrowse={() => void handleBrowse()}
+              disabled={isBusy}
+            />
+
+            {exportKind === 'video' && (
+              <RenderQueuePanel
+                queue={renderQueue.queue}
+                isBatchRendering={renderQueue.isBatchRendering}
+                batchProgress={renderQueue.batchProgress}
+                onCancelJob={(jobId) => void renderQueue.cancelJob(jobId)}
+                onRemoveItem={renderQueue.removeFromQueue}
+              />
+            )}
+          </>
+        ) : renderQueue.isBatchRendering ? (
+          <RenderQueuePanel
+            queue={renderQueue.queue}
+            isBatchRendering={renderQueue.isBatchRendering}
+            batchProgress={renderQueue.batchProgress}
+            onCancelJob={(jobId) => void renderQueue.cancelJob(jobId)}
+            onRemoveItem={renderQueue.removeFromQueue}
+          />
+        ) : (
+          <ProgressDisplay status={status} onClose={handleClose} onRetry={handleRetry} />
         )}
       </div>
-    </div>
+    </ModalShell>
   );
 }

@@ -26,6 +26,7 @@ interface AgentArtifactDetailPanelProps {
   messages: readonly ConversationMessage[];
   focus: AgentArtifactFocus | null;
   variant?: 'inline' | 'panel';
+  diagnosticsEnabled?: boolean;
   className?: string;
 }
 
@@ -33,8 +34,10 @@ export function AgentArtifactDetailPanel({
   messages,
   focus,
   variant = 'inline',
+  diagnosticsEnabled = true,
   className = '',
 }: AgentArtifactDetailPanelProps) {
+  const showDiagnostics = import.meta.env.DEV && diagnosticsEnabled;
   const detail = useMemo(() => resolveArtifactFocusDetail(messages, focus), [focus, messages]);
 
   if (!detail) {
@@ -83,9 +86,11 @@ export function AgentArtifactDetailPanel({
         <div className="space-y-2">
           <div className="flex flex-wrap items-center gap-2">
             <span className="text-sm font-medium text-text-primary">Action Details</span>
-            <code className="rounded bg-surface-base px-1.5 py-0.5 text-xs text-text-secondary">
-              {detail.value}
-            </code>
+            {showDiagnostics && (
+              <code className="max-w-full break-all rounded bg-surface-base px-1.5 py-0.5 text-xs text-text-secondary [overflow-wrap:anywhere]">
+                {detail.value}
+              </code>
+            )}
           </div>
           <div className="flex flex-wrap items-center gap-2">
             <DetailChip>{toolStatusLabel}</DetailChip>
@@ -97,8 +102,12 @@ export function AgentArtifactDetailPanel({
           {detail.approvals.map((approval, index) => (
             <ToolApprovalPartRenderer key={`${approval.stepId}-${index}`} part={approval} />
           ))}
-          {detail.toolCall && <ToolCallPartRenderer part={detail.toolCall} />}
-          {detail.toolResult && <ToolResultPartRenderer part={detail.toolResult} />}
+          {detail.toolCall && (showDiagnostics || !detail.toolResult) && (
+            <ToolCallPartRenderer part={detail.toolCall} diagnosticsEnabled={showDiagnostics} />
+          )}
+          {detail.toolResult && (
+            <ToolResultPartRenderer part={detail.toolResult} diagnosticsEnabled={showDiagnostics} />
+          )}
         </div>
       )}
 

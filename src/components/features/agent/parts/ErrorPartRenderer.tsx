@@ -5,27 +5,47 @@
  */
 
 import type { ErrorPart } from '@/agents/engine/core/conversation';
+import { getUserFriendlyError } from '@/utils/errorMessages';
 
 interface ErrorPartRendererProps {
   part: ErrorPart;
   onRetry?: () => void;
   className?: string;
+  diagnosticsEnabled?: boolean;
 }
 
-export function ErrorPartRenderer({ part, onRetry, className = '' }: ErrorPartRendererProps) {
+export function ErrorPartRenderer({
+  part,
+  onRetry,
+  className = '',
+  diagnosticsEnabled = true,
+}: ErrorPartRendererProps) {
+  const showDiagnostics = import.meta.env.DEV && diagnosticsEnabled;
+  const displayMessage = showDiagnostics
+    ? part.message
+    : getUserFriendlyError(part.message, { includeTechnicalDetails: false });
+
   return (
     <div
-      className={`p-3 bg-red-500/10 border border-red-500/20 rounded-lg ${className}`}
+      className={`min-w-0 max-w-full rounded-lg border border-red-500/20 bg-red-500/10 p-3 ${className}`}
       data-testid="error-part"
     >
       <div className="flex items-start gap-2">
-        <span className="text-red-400 text-sm mt-0.5">\u26A0</span>
+        <span className="text-red-400 text-sm mt-0.5">{'\u26A0'}</span>
         <div className="flex-1 min-w-0">
-          <p className="text-sm text-red-400">{part.message}</p>
-          <div className="flex items-center gap-2 mt-1">
-            <span className="text-xs text-red-400/60 font-mono">{part.code}</span>
-            <span className="text-xs text-red-400/60">in {part.phase}</span>
-          </div>
+          <p className="max-w-full break-words text-sm text-red-400 [overflow-wrap:anywhere]">
+            {displayMessage}
+          </p>
+          {showDiagnostics && (
+            <div className="mt-1 flex min-w-0 max-w-full flex-wrap items-center gap-2">
+              <span className="max-w-full break-all font-mono text-xs text-red-400/60">
+                {part.code}
+              </span>
+              <span className="max-w-full break-words text-xs text-red-400/60 [overflow-wrap:anywhere]">
+                in {part.phase}
+              </span>
+            </div>
+          )}
         </div>
       </div>
 

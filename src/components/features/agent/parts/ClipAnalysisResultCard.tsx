@@ -1,6 +1,7 @@
 import { convertFileSrc } from '@tauri-apps/api/core';
 
 import { canRenderClipAnalysisResult } from './clipAnalysisResultUtils';
+import { ProductionClipAnalysisView } from './ProductionClipAnalysisView';
 
 interface ClipAnalysisQuality {
   status?: string;
@@ -109,7 +110,7 @@ interface SemanticEditPlanRange {
   warnings?: string[];
 }
 
-interface ClipAnalysisData {
+export interface ClipAnalysisData {
   summary?: string;
   source?: string;
   fingerprint?: string;
@@ -138,6 +139,7 @@ interface ClipAnalysisData {
 interface ClipAnalysisResultCardProps {
   tool: string;
   data: unknown;
+  diagnosticsEnabled?: boolean;
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -468,7 +470,11 @@ function ClipEvidenceView({ clip }: { clip: ClipAnalysisData }) {
   );
 }
 
-export function ClipAnalysisResultCard({ tool, data }: ClipAnalysisResultCardProps) {
+export function ClipAnalysisResultCard({
+  tool,
+  data,
+  diagnosticsEnabled = true,
+}: ClipAnalysisResultCardProps) {
   if (!canRenderClipAnalysisResult(tool, data)) {
     return null;
   }
@@ -476,6 +482,10 @@ export function ClipAnalysisResultCard({ tool, data }: ClipAnalysisResultCardPro
   const root = asClipAnalysisData(data);
   if (!root) {
     return null;
+  }
+
+  if (!import.meta.env.DEV || !diagnosticsEnabled) {
+    return <ProductionClipAnalysisView root={root} />;
   }
 
   const hits = Array.isArray(root.hits) ? root.hits : [];

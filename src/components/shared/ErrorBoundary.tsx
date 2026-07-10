@@ -23,6 +23,7 @@
  */
 
 import { Component, type ReactNode, type ErrorInfo } from 'react';
+import { getUserFriendlyError } from '@/utils/errorMessages';
 
 // =============================================================================
 // Types
@@ -170,9 +171,13 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
               margin: '0 0 15px 0',
               color: '#bdc3c7',
               fontSize: '14px',
+              overflowWrap: 'anywhere',
+              wordBreak: 'break-word',
             }}
           >
-            {error.message}
+            {import.meta.env.DEV
+              ? error.message
+              : getUserFriendlyError(error, { includeTechnicalDetails: false })}
           </p>
         )}
 

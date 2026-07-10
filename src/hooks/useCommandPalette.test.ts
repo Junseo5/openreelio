@@ -7,7 +7,7 @@
 
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { act, renderHook, waitFor } from '@testing-library/react';
-import { useCommandPalette } from './useCommandPalette';
+import { createSettingsPaletteActions, useCommandPalette } from './useCommandPalette';
 import { useCommandPaletteStore } from '@/stores/commandPaletteStore';
 import { useProjectStore } from '@/stores/projectStore';
 import { usePlaybackStore } from '@/stores/playbackStore';
@@ -42,6 +42,18 @@ describe('useCommandPalette', () => {
   // ===========================================================================
 
   describe('action registry', () => {
+    it('should hide the developer settings command in production', () => {
+      const actions = createSettingsPaletteActions(vi.fn(), false);
+
+      expect(actions.map((action) => action.id)).not.toContain('settings.developer');
+    });
+
+    it('should include the developer settings command in development', () => {
+      const actions = createSettingsPaletteActions(vi.fn(), true);
+
+      expect(actions.map((action) => action.id)).toContain('settings.developer');
+    });
+
     it('should register 20+ actions from stores and tools', () => {
       const { result } = renderHook(() => useCommandPalette());
 

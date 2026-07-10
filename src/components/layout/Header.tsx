@@ -374,6 +374,7 @@ export function Header({
               <button
                 onClick={() => openSettings()}
                 className="rounded p-1.5 text-editor-text-muted transition-colors hover:bg-editor-bg hover:text-editor-text"
+                aria-label="Open settings"
                 title={`Settings (${settingsShortcutLabel})`}
               >
                 <Settings className="h-4 w-4" />
@@ -383,6 +384,7 @@ export function Header({
               <button
                 onClick={() => void handleCloseClick()}
                 className="rounded p-1.5 text-editor-text-muted transition-colors hover:bg-editor-bg hover:text-red-400"
+                aria-label={isNativeRuntime ? 'Exit application' : 'Close project'}
                 title={isNativeRuntime ? 'Exit application' : 'Close project'}
               >
                 <X className="h-4 w-4" />

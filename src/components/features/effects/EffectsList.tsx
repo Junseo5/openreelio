@@ -5,16 +5,7 @@
  * enabling/disabling, reordering, and removing effects.
  */
 
-import {
-  Eye,
-  EyeOff,
-  Trash2,
-  ChevronUp,
-  ChevronDown,
-  Plus,
-  Music,
-  Sparkles,
-} from 'lucide-react';
+import { Eye, EyeOff, Trash2, ChevronUp, ChevronDown, Plus, Music, Sparkles } from 'lucide-react';
 import type { Effect, EffectId } from '@/types';
 import { isAudioEffect, EFFECT_TYPE_LABELS } from '@/types';
 
@@ -73,12 +64,12 @@ export function EffectsList({
   const sortedEffects = [...effects].sort((a, b) => a.order - b.order);
 
   return (
-    <div className="flex flex-col h-full">
+    <div className="flex h-full min-h-0 min-w-0 flex-col">
       {/* Header */}
-      <div className="flex items-center justify-between px-2 py-1.5 border-b border-editor-border">
-        <div className="flex items-center gap-2">
+      <div className="flex min-w-0 items-center justify-between border-b border-editor-border px-2 py-1.5">
+        <div className="flex min-w-0 items-center gap-2">
           <Sparkles className="w-4 h-4 text-editor-text-muted" />
-          <span className="text-sm font-medium text-editor-text">Effects</span>
+          <span className="min-w-0 truncate text-sm font-medium text-editor-text">Effects</span>
           {effects.length > 0 && (
             <span className="px-1.5 py-0.5 text-xs bg-editor-border rounded text-editor-text-muted">
               {effects.length}
@@ -98,7 +89,7 @@ export function EffectsList({
       </div>
 
       {/* Effects List */}
-      <div className="flex-1 overflow-auto">
+      <div className="min-h-0 min-w-0 flex-1 overflow-auto">
         {sortedEffects.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-full p-4 text-editor-text-muted text-sm">
             <Sparkles className="w-8 h-8 mb-2 opacity-50" />
@@ -113,7 +104,11 @@ export function EffectsList({
             )}
           </div>
         ) : (
-          <ul className="divide-y divide-editor-border" role="list" aria-label="Applied effects">
+          <ul
+            className="min-w-0 divide-y divide-editor-border"
+            role="list"
+            aria-label="Applied effects"
+          >
             {sortedEffects.map((effect, index) => {
               const isSelected = effect.id === selectedEffectId;
               const isAudio = isAudioEffect(effect.effectType);
@@ -125,7 +120,7 @@ export function EffectsList({
                   key={effect.id}
                   data-testid={`effect-item-${effect.id}`}
                   className={`
-                    flex items-center gap-2 px-2 py-1.5 cursor-pointer transition-colors
+                    flex min-w-0 items-center gap-2 px-2 py-1.5 cursor-pointer transition-colors
                     hover:bg-editor-hover
                     ${isSelected ? 'ring-2 ring-inset ring-primary-400 bg-editor-hover' : ''}
                     ${!effect.enabled ? 'opacity-50' : ''}
@@ -135,23 +130,23 @@ export function EffectsList({
                   {/* Effect Icon */}
                   <div className="flex-shrink-0">
                     {isAudio ? (
-                      <Music
-                        data-testid="audio-icon"
-                        className="w-4 h-4 text-green-400"
-                      />
+                      <Music data-testid="audio-icon" className="w-4 h-4 text-green-400" />
                     ) : (
                       <Sparkles className="w-4 h-4 text-purple-400" />
                     )}
                   </div>
 
                   {/* Effect Name */}
-                  <span className="flex-1 text-sm text-editor-text truncate">
+                  <span className="min-w-0 flex-1 truncate text-sm text-editor-text">
                     {getEffectLabel(effect)}
                   </span>
 
                   {/* Controls */}
                   {!readOnly && (
-                    <div className="flex items-center gap-0.5" onClick={(e) => e.stopPropagation()}>
+                    <div
+                      className="flex shrink-0 items-center gap-0.5"
+                      onClick={(e) => e.stopPropagation()}
+                    >
                       {/* Reorder buttons */}
                       {onReorderEffect && (
                         <>

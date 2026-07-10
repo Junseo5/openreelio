@@ -512,6 +512,7 @@ describe('FullscreenPreview', () => {
       const container = screen.getByTestId('fullscreen-preview');
       expect(container).toHaveAttribute('role', 'application');
       expect(container).toHaveAttribute('aria-label', 'Fullscreen video preview');
+      expect(screen.getByRole('button', { name: 'Play video' })).toBeInTheDocument();
     });
 
     it('includes screen reader keyboard hints', () => {

@@ -68,10 +68,12 @@ const PreviewScopesPanelLazy = lazy(async () => {
   return { default: module.PreviewScopesPanel };
 });
 
-const PerformancePanelLazy = lazy(async () => {
-  const module = await import('@/components/features/dev');
-  return { default: module.PerformancePanel };
-});
+const PerformancePanelLazy = import.meta.env.DEV
+  ? lazy(async () => {
+      const module = await import('@/components/features/dev');
+      return { default: module.PerformancePanel };
+    })
+  : null;
 
 const TerminalPanelLazy = lazy(async () => {
   const module = await import('@/components/features/terminal');
@@ -140,7 +142,7 @@ export function createEditorPanelContent({
   return {
     explorer: (
       <ExplorerErrorBoundary onError={(error) => logger.error('ProjectExplorer error', { error })}>
-        <div className="h-full overflow-auto p-4">
+        <div className="h-full min-h-0 min-w-0 overflow-auto p-4">
           <ProjectExplorer onAddToTimeline={onExplorerAssetAddToTimeline} />
         </div>
       </ExplorerErrorBoundary>
@@ -149,7 +151,7 @@ export function createEditorPanelContent({
     'source-monitor': (
       <PreviewErrorBoundary onError={(error) => logger.error('SourceMonitor error', { error })}>
         <SourceMonitor
-          className="h-full w-full"
+          className="h-full min-h-0 min-w-0 w-full"
           onInsertEdit={onSourceInsertEdit}
           onOverwriteEdit={onSourceOverwriteEdit}
         />
@@ -159,7 +161,7 @@ export function createEditorPanelContent({
     'effects-browser': (
       <InspectorErrorBoundary onError={(error) => logger.error('EffectsBrowser error', { error })}>
         <EffectsBrowser
-          className="h-full"
+          className="h-full min-h-0 min-w-0"
           onEffectSelect={onEffectSelect}
           onPresetSelect={onEffectPresetSelect}
           onSavedPresetSelect={onSavedEffectPresetSelect}
@@ -170,13 +172,13 @@ export function createEditorPanelContent({
     'program-monitor': (
       <div
         ref={previewContainerRef as RefObject<HTMLDivElement>}
-        className={`relative h-full w-full ${isFullscreen ? 'bg-black' : ''}`}
+        className={`relative h-full min-h-0 min-w-0 w-full ${isFullscreen ? 'bg-black' : ''}`}
       >
         <PreviewErrorBoundary
           onError={(error) => logger.error('UnifiedPreviewPlayer error', { error })}
         >
           <UnifiedPreviewPlayer
-            className="h-full w-full"
+            className="h-full min-h-0 min-w-0 w-full"
             showControls
             showTimecode
             showStats={import.meta.env.DEV}
@@ -230,7 +232,7 @@ export function createEditorPanelContent({
 
     inspector: (
       <InspectorErrorBoundary onError={(error) => logger.error('Inspector error', { error })}>
-        <div className="h-full overflow-auto p-4">
+        <div className="h-full min-h-0 min-w-0 overflow-y-auto overflow-x-hidden">
           <Inspector {...inspectorProps} />
         </div>
       </InspectorErrorBoundary>
@@ -238,7 +240,7 @@ export function createEditorPanelContent({
 
     'audio-mixer': (
       <Suspense fallback={BOTTOM_PANEL_LOADING_FALLBACK}>
-        <AudioMixerPanelLazy {...audioMixerProps} className="h-full" />
+        <AudioMixerPanelLazy {...audioMixerProps} className="h-full min-h-0 min-w-0" />
       </Suspense>
     ),
 
@@ -292,10 +294,10 @@ export function createEditorPanelContent({
       </Suspense>
     ) : undefined,
 
-    performance: (
+    performance: PerformancePanelLazy ? (
       <Suspense fallback={BOTTOM_PANEL_LOADING_FALLBACK}>
         <PerformancePanelLazy />
       </Suspense>
-    ),
+    ) : undefined,
   };
 }

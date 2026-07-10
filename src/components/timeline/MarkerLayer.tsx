@@ -119,6 +119,8 @@ export function MarkerLayer({
             zoom={zoom}
             selected={selectedMarkerIds.includes(marker.id)}
             disabled={disabled}
+            viewportLeft={scrollX}
+            viewportWidth={viewportWidth}
             onClick={onMarkerClick}
             onDoubleClick={onMarkerDoubleClick}
             onContextMenu={onMarkerContextMenu}

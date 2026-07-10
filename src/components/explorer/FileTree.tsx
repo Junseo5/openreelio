@@ -5,7 +5,7 @@
  * Shows all media files in the project folder.
  */
 
-import { useCallback, type MouseEvent } from 'react';
+import { useCallback, useEffect, useState, type MouseEvent } from 'react';
 import { FolderSearch, RefreshCw } from 'lucide-react';
 import type { FileTreeEntry } from '@/types';
 import { FileTreeItem } from './FileTreeItem';
@@ -27,8 +27,12 @@ export interface FileTreeProps {
   onFileDoubleClick?: (entry: FileTreeEntry) => void;
   /** Handler for right-clicking a file */
   onContextMenu?: (event: MouseEvent, entry: FileTreeEntry) => void;
-  /** Handler for starting a drag from a file */
-  onDragStart?: (entry: FileTreeEntry) => void;
+}
+
+function containsEntry(entries: FileTreeEntry[], relativePath: string): boolean {
+  return entries.some(
+    (entry) => entry.relativePath === relativePath || containsEntry(entry.children, relativePath),
+  );
 }
 
 // =============================================================================
@@ -42,11 +46,26 @@ export function FileTree({
   onFileClick,
   onFileDoubleClick,
   onContextMenu,
-  onDragStart,
 }: FileTreeProps) {
+  const [selectedPath, setSelectedPath] = useState<string | null>(null);
+  const [focusedPath, setFocusedPath] = useState<string | null>(entries[0]?.relativePath ?? null);
+
+  useEffect(() => {
+    setFocusedPath((currentPath) => {
+      if (currentPath && containsEntry(entries, currentPath)) {
+        return currentPath;
+      }
+      return entries[0]?.relativePath ?? null;
+    });
+  }, [entries]);
+
   const handleScan = useCallback(() => {
     onScan?.();
   }, [onScan]);
+
+  const handleSelect = useCallback((entry: FileTreeEntry) => {
+    setSelectedPath(entry.relativePath);
+  }, []);
 
   if (entries.length === 0 && !isScanning) {
     return (
@@ -54,6 +73,7 @@ export function FileTree({
         <FolderSearch className="w-12 h-12 opacity-50" />
         <p className="text-sm">No media files found</p>
         <button
+          type="button"
           className="flex items-center gap-1.5 px-3 py-1.5 text-xs bg-primary-600 hover:bg-primary-500 text-white rounded transition-colors"
           onClick={handleScan}
         >
@@ -67,21 +87,29 @@ export function FileTree({
   return (
     <div className="text-sm">
       {isScanning && (
-        <div className="flex items-center gap-2 p-2 text-xs text-text-secondary">
-          <div className="w-3 h-3 border-2 border-text-muted border-t-transparent rounded-full animate-spin" />
+        <div className="flex items-center gap-2 p-2 text-xs text-text-secondary" role="status">
+          <div
+            className="w-3 h-3 border-2 border-text-muted border-t-transparent rounded-full animate-spin"
+            aria-hidden="true"
+          />
           Scanning workspace...
         </div>
       )}
-      {entries.map((entry) => (
-        <FileTreeItem
-          key={entry.relativePath}
-          entry={entry}
-          onFileClick={onFileClick}
-          onFileDoubleClick={onFileDoubleClick}
-          onContextMenu={onContextMenu}
-          onDragStart={onDragStart}
-        />
-      ))}
+      <div role="tree" aria-label="Workspace files" aria-busy={isScanning}>
+        {entries.map((entry) => (
+          <FileTreeItem
+            key={entry.relativePath}
+            entry={entry}
+            selectedPath={selectedPath}
+            focusedPath={focusedPath}
+            onSelect={handleSelect}
+            onFocusEntry={setFocusedPath}
+            onFileClick={onFileClick}
+            onFileDoubleClick={onFileDoubleClick}
+            onContextMenu={onContextMenu}
+          />
+        ))}
+      </div>
     </div>
   );
 }
