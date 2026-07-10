@@ -18,8 +18,14 @@ import {
   useAppLifecycle,
 } from './hooks';
 import { UpdateBanner } from './components/features/update';
+import { AppFrame } from './components/layout';
 import { createLogger, initializeLogger } from './services/logger';
-import { loadRecentProjects, clearRecentProjects, type RecentProject } from './utils';
+import {
+  loadRecentProjects,
+  clearRecentProjects,
+  getUserFriendlyError,
+  type RecentProject,
+} from './utils';
 import { updateService } from './services/updateService';
 import { isTauriRuntime } from './services/framePaths';
 import { APP_VERSION, normalizeAppVersion } from './config/appVersion';
@@ -47,7 +53,7 @@ const EditorView = lazy(async () => {
 
 function ScreenLoadingFallback(): JSX.Element {
   return (
-    <div className="flex h-screen items-center justify-center bg-editor-bg text-editor-text-muted">
+    <div className="flex h-full min-h-0 items-center justify-center bg-editor-bg text-editor-text-muted">
       Loading interface...
     </div>
   );
@@ -158,7 +164,7 @@ function App(): JSX.Element {
     (error: Error) => {
       logger.error('Editor view error', { error });
       addToast(
-        `Editor error: ${error.message}. Try reloading the page if the issue persists.`,
+        `${getUserFriendlyError(error, { includeTechnicalDetails: false })} Try reloading the application if the issue persists.`,
         'error',
       );
     },
@@ -173,19 +179,22 @@ function App(): JSX.Element {
   if (isTauri && settingsLoaded && !general.hasCompletedSetup) {
     return (
       <>
-        <UpdateBanner checkOnMount={settingsLoaded && general.checkUpdatesOnStartup} />
-        <Suspense fallback={<ScreenLoadingFallback />}>
-          <SetupWizard
-            onComplete={() => {
-              // After setup, refresh to show welcome screen
-              logger.info('Setup wizard completed');
-            }}
-            onSkip={() => {
-              logger.info('Setup wizard skipped');
-            }}
-            version={appVersion}
-          />
-        </Suspense>
+        <AppFrame
+          banner={<UpdateBanner checkOnMount={settingsLoaded && general.checkUpdatesOnStartup} />}
+        >
+          <Suspense fallback={<ScreenLoadingFallback />}>
+            <SetupWizard
+              onComplete={() => {
+                // After setup, refresh to show welcome screen
+                logger.info('Setup wizard completed');
+              }}
+              onSkip={() => {
+                logger.info('Setup wizard skipped');
+              }}
+              version={appVersion}
+            />
+          </Suspense>
+        </AppFrame>
         <ToastContainer toasts={toasts} onClose={dismissToast} />
       </>
     );
@@ -195,16 +204,19 @@ function App(): JSX.Element {
   if (!isLoaded) {
     return (
       <>
-        <UpdateBanner checkOnMount={settingsLoaded && general.checkUpdatesOnStartup} />
-        <Suspense fallback={<ScreenLoadingFallback />}>
-          <WelcomeScreen
-            onOpenFolder={(path) => void handleOpenFolder(path)}
-            recentProjects={recentProjects}
-            isLoading={isLoading}
-            version={appVersion}
-            onClearRecentProjects={handleClearRecentProjects}
-          />
-        </Suspense>
+        <AppFrame
+          banner={<UpdateBanner checkOnMount={settingsLoaded && general.checkUpdatesOnStartup} />}
+        >
+          <Suspense fallback={<ScreenLoadingFallback />}>
+            <WelcomeScreen
+              onOpenFolder={(path) => void handleOpenFolder(path)}
+              recentProjects={recentProjects}
+              isLoading={isLoading}
+              version={appVersion}
+              onClearRecentProjects={handleClearRecentProjects}
+            />
+          </Suspense>
+        </AppFrame>
         <FFmpegWarning
           isOpen={showFFmpegWarning}
           onDismiss={handleDismissFFmpegWarning}
@@ -220,42 +232,47 @@ function App(): JSX.Element {
 
   return (
     <>
-      <UpdateBanner checkOnMount={settingsLoaded && general.checkUpdatesOnStartup} />
-      <ErrorBoundary
-        onError={handleEditorError}
-        showDetails={import.meta.env.DEV}
-        showReloadButton={true}
-        fallbackRender={({ error, resetError }) => (
-          <div className="flex flex-col items-center justify-center h-screen bg-editor-bg text-editor-text p-4 sm:p-8 text-center">
-            <div className="text-status-error text-6xl mb-4">⚠️</div>
-            <h1 className="text-xl sm:text-2xl font-bold text-status-error mb-2">Editor Error</h1>
-            <p className="text-text-secondary mb-6 max-w-md px-4">
-              The editor encountered an error. Your recent work may have been auto-saved.
-            </p>
-            <p className="text-sm text-text-muted mb-6 font-mono bg-surface-elevated p-2 rounded max-w-md w-full overflow-x-auto">
-              {error.message}
-            </p>
-            <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 w-full sm:w-auto px-4">
-              <button
-                onClick={resetError}
-                className="px-6 py-2 bg-primary-600 hover:bg-primary-500 text-white rounded transition-colors"
-              >
-                Try Again
-              </button>
-              <button
-                onClick={() => window.location.reload()}
-                className="px-6 py-2 bg-surface-active hover:bg-surface-highest text-text-primary rounded transition-colors"
-              >
-                Reload Application
-              </button>
-            </div>
-          </div>
-        )}
+      <AppFrame
+        banner={<UpdateBanner checkOnMount={settingsLoaded && general.checkUpdatesOnStartup} />}
       >
-        <Suspense fallback={<ScreenLoadingFallback />}>
-          <EditorView sequence={activeSequence ?? null} appVersion={appVersion} />
-        </Suspense>
-      </ErrorBoundary>
+        <ErrorBoundary
+          onError={handleEditorError}
+          showDetails={import.meta.env.DEV}
+          showReloadButton={true}
+          fallbackRender={({ error, resetError }) => (
+            <div className="flex h-full min-h-0 flex-col items-center justify-center bg-editor-bg p-4 text-center text-editor-text sm:p-8">
+              <div className="text-status-error text-6xl mb-4">⚠️</div>
+              <h1 className="text-xl sm:text-2xl font-bold text-status-error mb-2">Editor Error</h1>
+              <p className="text-text-secondary mb-6 max-w-md px-4">
+                The editor encountered an error. Your recent work may have been auto-saved.
+              </p>
+              <p className="mb-6 w-full max-w-md break-words overflow-x-auto rounded bg-surface-elevated p-2 font-mono text-sm text-text-muted [overflow-wrap:anywhere]">
+                {import.meta.env.DEV
+                  ? error.message
+                  : getUserFriendlyError(error, { includeTechnicalDetails: false })}
+              </p>
+              <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 w-full sm:w-auto px-4">
+                <button
+                  onClick={resetError}
+                  className="px-6 py-2 bg-primary-600 hover:bg-primary-500 text-white rounded transition-colors"
+                >
+                  Try Again
+                </button>
+                <button
+                  onClick={() => window.location.reload()}
+                  className="px-6 py-2 bg-surface-active hover:bg-surface-highest text-text-primary rounded transition-colors"
+                >
+                  Reload Application
+                </button>
+              </div>
+            </div>
+          )}
+        >
+          <Suspense fallback={<ScreenLoadingFallback />}>
+            <EditorView sequence={activeSequence ?? null} appVersion={appVersion} />
+          </Suspense>
+        </ErrorBoundary>
+      </AppFrame>
       <FFmpegWarning
         isOpen={showFFmpegWarning}
         onDismiss={handleDismissFFmpegWarning}

@@ -13,5 +13,7 @@ export type { DockZoneProps } from './DockZone';
 export { DockableEditorLayout } from './DockableEditorLayout';
 export type { DockableEditorLayoutProps } from './DockableEditorLayout';
 export { WorkspacePresetSelector } from './WorkspacePresetSelector';
+export { AppFrame } from './AppFrame';
+export type { AppFrameProps } from './AppFrame';
 
 // Legacy layout containers remain available via direct-file imports only.

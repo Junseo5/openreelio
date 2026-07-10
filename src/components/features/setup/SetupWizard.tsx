@@ -10,7 +10,15 @@
 
 import { useState, useCallback, useEffect } from 'react';
 import { open } from '@tauri-apps/plugin-dialog';
-import { Sparkles, CheckCircle, AlertTriangle, FolderOpen, Palette, ArrowRight, ArrowLeft } from 'lucide-react';
+import {
+  Sparkles,
+  CheckCircle,
+  AlertTriangle,
+  FolderOpen,
+  Palette,
+  ArrowRight,
+  ArrowLeft,
+} from 'lucide-react';
 import { useFFmpegStatus } from '@/hooks/useFFmpegStatus';
 import { useSettings } from '@/hooks/useSettings';
 import { createLogger } from '@/services/logger';
@@ -50,13 +58,11 @@ function WelcomeStep({ onNext, onSkip }: StepProps & { version?: string }): JSX.
         <Sparkles className="w-10 h-10 text-primary-400" />
       </div>
 
-      <h1 className="text-3xl font-bold text-editor-text mb-4">
-        Welcome to OpenReelio
-      </h1>
+      <h1 className="text-3xl font-bold text-editor-text mb-4">Welcome to OpenReelio</h1>
 
       <p className="text-editor-text-muted mb-8 max-w-md">
-        AI-powered video editing made simple. Let&apos;s set up a few things
-        to get you started with the best experience.
+        AI-powered video editing made simple. Let&apos;s set up a few things to get you started with
+        the best experience.
       </p>
 
       <div className="space-y-3 text-left w-full max-w-sm mb-8">
@@ -99,9 +105,7 @@ function FFmpegStep({ onNext, onBack }: StepProps): JSX.Element {
 
   return (
     <div className="flex flex-col items-center text-center p-8">
-      <h2 className="text-2xl font-bold text-editor-text mb-4">
-        FFmpeg Setup
-      </h2>
+      <h2 className="text-2xl font-bold text-editor-text mb-4">FFmpeg Setup</h2>
 
       <p className="text-editor-text-muted mb-8 max-w-md">
         OpenReelio uses FFmpeg for video processing. Let&apos;s check if it&apos;s installed.
@@ -118,9 +122,7 @@ function FFmpegStep({ onNext, onBack }: StepProps): JSX.Element {
             <CheckCircle className="w-8 h-8" />
             <div className="text-left">
               <p className="font-medium">FFmpeg Found</p>
-              <p className="text-sm text-editor-text-muted">
-                Video processing is ready to use.
-              </p>
+              <p className="text-sm text-editor-text-muted">Video processing is ready to use.</p>
             </div>
           </div>
         ) : (
@@ -150,10 +152,12 @@ function FFmpegStep({ onNext, onBack }: StepProps): JSX.Element {
                   </a>
                 </li>
                 <li>
-                  <strong>macOS:</strong> Run <code className="bg-black/30 px-1 rounded">brew install ffmpeg</code>
+                  <strong>macOS:</strong> Run{' '}
+                  <code className="bg-black/30 px-1 rounded">brew install ffmpeg</code>
                 </li>
                 <li>
-                  <strong>Linux:</strong> Run <code className="bg-black/30 px-1 rounded">sudo apt install ffmpeg</code>
+                  <strong>Linux:</strong> Run{' '}
+                  <code className="bg-black/30 px-1 rounded">sudo apt install ffmpeg</code>
                 </li>
               </ul>
             </div>
@@ -214,14 +218,12 @@ function SettingsStep({ onNext, onBack }: StepProps): JSX.Element {
     (theme: 'light' | 'dark' | 'system') => {
       void updateAppearance({ theme });
     },
-    [updateAppearance]
+    [updateAppearance],
   );
 
   return (
     <div className="flex flex-col items-center text-center p-8">
-      <h2 className="text-2xl font-bold text-editor-text mb-4">
-        Preferences
-      </h2>
+      <h2 className="text-2xl font-bold text-editor-text mb-4">Preferences</h2>
 
       <p className="text-editor-text-muted mb-8 max-w-md">
         Customize your editing environment. You can change these later in Settings.
@@ -303,9 +305,7 @@ function CompleteStep({ onComplete }: { onComplete: () => void }): JSX.Element {
         <CheckCircle className="w-10 h-10 text-green-400" />
       </div>
 
-      <h2 className="text-2xl font-bold text-editor-text mb-4">
-        You&apos;re All Set!
-      </h2>
+      <h2 className="text-2xl font-bold text-editor-text mb-4">You&apos;re All Set!</h2>
 
       <p className="text-editor-text-muted mb-8 max-w-md">
         OpenReelio is ready to use. Create a new project or open an existing one to get started.
@@ -313,11 +313,20 @@ function CompleteStep({ onComplete }: { onComplete: () => void }): JSX.Element {
 
       <div className="space-y-3 text-left w-full max-w-sm mb-8 p-4 bg-editor-surface rounded-lg">
         <p className="text-sm font-medium text-editor-text mb-2">Quick Tips:</p>
-        <ul className="text-sm text-editor-text-muted space-y-2">
-          <li>• Press <kbd className="px-1.5 py-0.5 bg-editor-bg rounded text-xs">Space</kbd> to play/pause</li>
-          <li>• Press <kbd className="px-1.5 py-0.5 bg-editor-bg rounded text-xs">S</kbd> to split clip at playhead</li>
-          <li>• Drag media files directly onto the timeline</li>
-          <li>• Use <kbd className="px-1.5 py-0.5 bg-editor-bg rounded text-xs">Ctrl+Z</kbd> to undo any action</li>
+        <ul className="list-disc space-y-2 pl-5 text-sm text-editor-text-muted">
+          <li>
+            Press <kbd className="px-1.5 py-0.5 bg-editor-bg rounded text-xs">Space</kbd> to
+            play/pause
+          </li>
+          <li>
+            Press <kbd className="px-1.5 py-0.5 bg-editor-bg rounded text-xs">S</kbd> to split clip
+            at playhead
+          </li>
+          <li>Drag media files directly onto the timeline</li>
+          <li>
+            Use <kbd className="px-1.5 py-0.5 bg-editor-bg rounded text-xs">Ctrl+Z</kbd> to undo any
+            action
+          </li>
         </ul>
       </div>
 
@@ -400,43 +409,36 @@ export function SetupWizard({ onComplete, onSkip, version }: SetupWizardProps): 
   }, [currentStep, updateGeneral]);
 
   return (
-    <div
-      className="fixed inset-0 bg-editor-bg flex flex-col items-center justify-center"
-      data-testid="setup-wizard"
-    >
-      {/* Progress indicator */}
-      <div className="absolute top-8 flex items-center gap-2">
-        {STEPS.slice(0, -1).map((step, index) => (
-          <div
-            key={step}
-            className={`w-2 h-2 rounded-full transition-colors ${
-              index <= currentIndex ? 'bg-primary-500' : 'bg-editor-border'
-            }`}
-          />
-        ))}
-      </div>
-
-      {/* Version badge */}
-      {version && (
-        <div className="absolute top-8 right-8 text-xs text-editor-text-muted">
-          v{version}
+    <div className="h-full min-h-0 overflow-y-auto bg-editor-bg" data-testid="setup-wizard">
+      <div className="relative flex min-h-full flex-col items-center justify-center px-4 py-16">
+        {/* Progress indicator */}
+        <div className="absolute top-8 flex items-center gap-2">
+          {STEPS.slice(0, -1).map((step, index) => (
+            <div
+              key={step}
+              className={`w-2 h-2 rounded-full transition-colors ${
+                index <= currentIndex ? 'bg-primary-500' : 'bg-editor-border'
+              }`}
+            />
+          ))}
         </div>
-      )}
 
-      {/* Step content */}
-      <div className="w-full max-w-xl">
-        {currentStep === 'welcome' && (
-          <WelcomeStep onNext={handleNext} onSkip={handleSkip} version={version} />
+        {/* Version badge */}
+        {version && (
+          <div className="absolute right-4 top-8 text-xs text-editor-text-muted sm:right-8">
+            v{version}
+          </div>
         )}
-        {currentStep === 'ffmpeg' && (
-          <FFmpegStep onNext={handleNext} onBack={handleBack} />
-        )}
-        {currentStep === 'settings' && (
-          <SettingsStep onNext={handleNext} onBack={handleBack} />
-        )}
-        {currentStep === 'complete' && (
-          <CompleteStep onComplete={() => void handleComplete()} />
-        )}
+
+        {/* Step content */}
+        <div className="w-full max-w-xl">
+          {currentStep === 'welcome' && (
+            <WelcomeStep onNext={handleNext} onSkip={handleSkip} version={version} />
+          )}
+          {currentStep === 'ffmpeg' && <FFmpegStep onNext={handleNext} onBack={handleBack} />}
+          {currentStep === 'settings' && <SettingsStep onNext={handleNext} onBack={handleBack} />}
+          {currentStep === 'complete' && <CompleteStep onComplete={() => void handleComplete()} />}
+        </div>
       </div>
     </div>
   );
