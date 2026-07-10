@@ -1,104 +1,74 @@
-/**
- * FileTreeItem Component
- *
- * Individual file or folder item in the workspace file tree.
- * Supports expand/collapse for directories and timeline drops for files.
- * All media files can be dragged to the timeline (auto-registered by the backend).
- */
+import { useCallback, useId, useRef, useState, type DragEvent, type MouseEvent } from 'react';
 
-import { useState, useCallback, type DragEvent, type MouseEvent } from 'react';
-import {
-  ChevronRight,
-  ChevronDown,
-  Folder,
-  Film,
-  Music,
-  Image as ImageIcon,
-  FileText,
-  File,
-  AlertTriangle,
-} from 'lucide-react';
-import type { FileTreeEntry, AssetKind } from '@/types';
 import { useTimelineAssetDragSource } from '@/hooks/useTimelineAssetDragSource';
-
-// =============================================================================
-// Types
-// =============================================================================
+import type { FileTreeEntry } from '@/types';
+import { FileTreeEntryRow } from './FileTreeEntryRow';
+import { useFileTreeKeyboardNavigation } from './useFileTreeKeyboardNavigation';
 
 export interface FileTreeItemProps {
-  /** File tree entry data */
+  /** File tree entry data. */
   entry: FileTreeEntry;
-  /** Nesting depth for indentation */
+  /** Nesting depth for indentation. */
   depth?: number;
-  /** Handler for clicking a file */
+  /** Currently selected path when the tree controls selection. */
+  selectedPath?: string | null;
+  /** Path of the single item included in the tree's tab order. */
+  focusedPath?: string | null;
+  /** Handler for updating the active tree item. */
+  onSelect?: (entry: FileTreeEntry) => void;
+  /** Handler for updating the tree's roving tab stop. */
+  onFocusEntry?: (relativePath: string) => void;
+  /** Handler for clicking a file. */
   onFileClick?: (entry: FileTreeEntry) => void;
-  /** Handler for double-clicking a file (e.g., add to timeline) */
+  /** Handler for double-clicking a file. */
   onFileDoubleClick?: (entry: FileTreeEntry) => void;
-  /** Handler for right-clicking a file */
+  /** Handler for right-clicking a file. */
   onContextMenu?: (event: MouseEvent, entry: FileTreeEntry) => void;
-  /** Handler for starting a drag from a file */
+  /** Handler for starting a drag from a file. */
   onDragStart?: (entry: FileTreeEntry) => void;
 }
-
-// =============================================================================
-// Utilities
-// =============================================================================
-
-function getFileIcon(kind?: AssetKind) {
-  switch (kind) {
-    case 'video':
-      return <Film className="w-4 h-4 text-blue-400" />;
-    case 'audio':
-      return <Music className="w-4 h-4 text-green-400" />;
-    case 'image':
-      return <ImageIcon className="w-4 h-4 text-purple-400" />;
-    case 'subtitle':
-      return <FileText className="w-4 h-4 text-yellow-400" />;
-    default:
-      return <File className="w-4 h-4 text-text-secondary" />;
-  }
-}
-
-function formatFileSize(bytes?: number): string {
-  if (bytes == null || bytes === 0) return '';
-  if (bytes < 1024) return `${bytes} B`;
-  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
-  if (bytes < 1024 * 1024 * 1024) return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
-  return `${(bytes / (1024 * 1024 * 1024)).toFixed(1)} GB`;
-}
-
-// =============================================================================
-// Component
-// =============================================================================
 
 export function FileTreeItem({
   entry,
   depth = 0,
+  selectedPath,
+  focusedPath,
+  onSelect,
+  onFocusEntry,
   onFileClick,
   onFileDoubleClick,
   onContextMenu,
   onDragStart,
 }: FileTreeItemProps) {
   const [isExpanded, setIsExpanded] = useState(depth < 1);
+  const [isLocallySelected, setIsLocallySelected] = useState(false);
+  const treeItemRef = useRef<HTMLDivElement>(null);
+  const childGroupId = useId();
+  const isSelected =
+    selectedPath === undefined ? isLocallySelected : selectedPath === entry.relativePath;
+  const isTabStop = focusedPath === undefined ? depth === 0 : focusedPath === entry.relativePath;
+
+  const selectEntry = useCallback(() => {
+    if (selectedPath === undefined) setIsLocallySelected(true);
+    onSelect?.(entry);
+  }, [entry, onSelect, selectedPath]);
 
   const handleToggle = useCallback(() => {
-    if (entry.isDirectory) {
-      setIsExpanded((prev) => !prev);
-    }
-  }, [entry.isDirectory]);
+    if (!entry.isDirectory) return;
+    treeItemRef.current?.focus();
+    onFocusEntry?.(entry.relativePath);
+    setIsExpanded((previous) => !previous);
+  }, [entry.isDirectory, entry.relativePath, onFocusEntry]);
 
   const handleClick = useCallback(() => {
-    if (entry.isDirectory) {
-      setIsExpanded((prev) => !prev);
-    } else {
-      onFileClick?.(entry);
-    }
-  }, [entry, onFileClick]);
+    treeItemRef.current?.focus();
+    selectEntry();
+    if (entry.isDirectory) setIsExpanded((previous) => !previous);
+    else onFileClick?.(entry);
+  }, [entry, onFileClick, selectEntry]);
 
   const handleDoubleClick = useCallback(() => {
-    if (!entry.isDirectory) {
-      onFileDoubleClick?.(entry);
-    }
+    if (!entry.isDirectory) onFileDoubleClick?.(entry);
   }, [entry, onFileDoubleClick]);
 
   const handleContextMenu = useCallback(
@@ -116,13 +86,11 @@ export function FileTreeItem({
         event.preventDefault();
         return;
       }
-
       const payload = {
         ...(entry.assetId != null ? { assetId: entry.assetId } : {}),
         ...(entry.kind != null ? { kind: entry.kind } : {}),
         workspaceRelativePath: entry.relativePath,
       };
-
       event.dataTransfer.setData('application/x-workspace-file', entry.relativePath);
       event.dataTransfer.setData('application/json', JSON.stringify(payload));
       event.dataTransfer.setData('text/plain', entry.assetId ?? entry.relativePath);
@@ -133,10 +101,7 @@ export function FileTreeItem({
   );
 
   const getTimelineAssetDragPayload = useCallback(() => {
-    if (entry.isDirectory) {
-      return null;
-    }
-
+    if (entry.isDirectory) return null;
     return {
       ...(entry.assetId != null ? { assetId: entry.assetId } : {}),
       ...(entry.kind != null ? { assetKind: entry.kind } : {}),
@@ -146,78 +111,54 @@ export function FileTreeItem({
   }, [entry]);
 
   const timelineAssetDragSource = useTimelineAssetDragSource(getTimelineAssetDragPayload);
-
-  const paddingLeft = 8 + depth * 16;
+  const handleKeyDown = useFileTreeKeyboardNavigation({
+    treeItemRef,
+    isDirectory: entry.isDirectory,
+    isExpanded,
+    setIsExpanded,
+    onActivate: handleClick,
+  });
 
   return (
-    <>
-      <div
-        data-workspace-entry-path={entry.relativePath}
-        data-workspace-entry-directory={entry.isDirectory ? 'true' : 'false'}
-        className={`flex items-center gap-1.5 py-0.5 text-sm cursor-pointer hover:bg-surface-active transition-colors group ${
-          entry.missing ? 'opacity-50' : ''
-        }`}
-        style={{ paddingLeft }}
+    <div
+      ref={treeItemRef}
+      role="treeitem"
+      aria-label={entry.name}
+      aria-level={depth + 1}
+      aria-selected={isSelected}
+      aria-expanded={entry.isDirectory ? isExpanded : undefined}
+      tabIndex={isTabStop ? 0 : -1}
+      className="group/treeitem focus:outline-none"
+      onFocus={(event) => {
+        if (event.target === event.currentTarget) onFocusEntry?.(entry.relativePath);
+      }}
+      onKeyDown={handleKeyDown}
+    >
+      <FileTreeEntryRow
+        entry={entry}
+        isExpanded={isExpanded}
+        isSelected={isSelected}
+        childGroupId={childGroupId}
+        paddingLeft={8 + depth * 16}
         onClick={handleClick}
         onDoubleClick={handleDoubleClick}
         onContextMenu={handleContextMenu}
         onPointerDown={timelineAssetDragSource.onPointerDown}
-        draggable={false}
         onDragStart={handleDragStart}
-        title={entry.relativePath}
-      >
-        {/* Expand/collapse toggle for directories */}
-        {entry.isDirectory ? (
-          <button
-            className="p-0.5 flex-shrink-0"
-            onClick={(e) => {
-              e.stopPropagation();
-              handleToggle();
-            }}
-          >
-            {isExpanded ? (
-              <ChevronDown className="w-3 h-3 text-text-secondary" />
-            ) : (
-              <ChevronRight className="w-3 h-3 text-text-secondary" />
-            )}
-          </button>
-        ) : (
-          <span className="w-4 flex-shrink-0" />
-        )}
+        onToggle={handleToggle}
+      />
 
-        {/* Icon */}
-        {entry.isDirectory ? (
-          <Folder className="w-4 h-4 text-yellow-500 flex-shrink-0" />
-        ) : (
-          getFileIcon(entry.kind)
-        )}
-
-        {/* Name */}
-        <span className="truncate flex-1 text-editor-text">{entry.name}</span>
-
-        {/* Missing file indicator */}
-        {!entry.isDirectory && entry.missing && (
-          <span title="File not found — may have been moved or deleted">
-            <AlertTriangle className="w-3.5 h-3.5 text-red-400 flex-shrink-0" />
-          </span>
-        )}
-
-        {/* File size badge */}
-        {!entry.isDirectory && entry.fileSize != null && (
-          <span className="text-[10px] text-text-muted flex-shrink-0 mr-2">
-            {formatFileSize(entry.fileSize)}
-          </span>
-        )}
-      </div>
-
-      {/* Render children if expanded */}
       {entry.isDirectory && isExpanded && entry.children.length > 0 && (
-        <div>
+        <div id={childGroupId} role="group">
           {entry.children.map((child) => (
             <FileTreeItem
               key={child.relativePath}
               entry={child}
               depth={depth + 1}
+              selectedPath={selectedPath}
+              focusedPath={focusedPath}
+              onSelect={onSelect}
+              onFocusEntry={onFocusEntry}
               onFileClick={onFileClick}
               onFileDoubleClick={onFileDoubleClick}
               onContextMenu={onContextMenu}
@@ -226,6 +167,6 @@ export function FileTreeItem({
           ))}
         </div>
       )}
-    </>
+    </div>
   );
 }

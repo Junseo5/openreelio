@@ -13,7 +13,9 @@ import type { FileTreeEntry } from '@/types';
 // Test Helpers
 // =============================================================================
 
-function createMockEntry(overrides: Partial<FileTreeEntry> & { relativePath: string }): FileTreeEntry {
+function createMockEntry(
+  overrides: Partial<FileTreeEntry> & { relativePath: string },
+): FileTreeEntry {
   return {
     name: overrides.relativePath.split('/').pop() ?? overrides.relativePath,
     isDirectory: false,
@@ -103,9 +105,7 @@ describe('FileTree', () => {
           relativePath: 'footage',
           name: 'footage',
           isDirectory: true,
-          children: [
-            createMockEntry({ relativePath: 'footage/clip.mp4', name: 'clip.mp4' }),
-          ],
+          children: [createMockEntry({ relativePath: 'footage/clip.mp4', name: 'clip.mp4' })],
         }),
       ];
 
@@ -126,6 +126,122 @@ describe('FileTree', () => {
       render(<FileTree entries={entries} />);
 
       expect(screen.queryByText('No media files found')).not.toBeInTheDocument();
+    });
+
+    it('should move focus between a folder and its child when arrow keys are pressed', () => {
+      const entries = [
+        createMockEntry({
+          relativePath: 'footage',
+          name: 'footage',
+          isDirectory: true,
+          children: [createMockEntry({ relativePath: 'footage/clip.mp4', name: 'clip.mp4' })],
+        }),
+      ];
+
+      render(<FileTree entries={entries} />);
+
+      expect(screen.getByRole('tree', { name: 'Workspace files' })).toBeInTheDocument();
+
+      const folder = screen.getByRole('treeitem', { name: 'footage' });
+      const child = screen.getByRole('treeitem', { name: 'clip.mp4' });
+      expect(folder).toHaveAttribute('aria-expanded', 'true');
+      expect(folder).toHaveAttribute('aria-level', '1');
+      expect(child).toHaveAttribute('aria-level', '2');
+      expect(screen.getByRole('button', { name: 'Collapse footage' })).toBeInTheDocument();
+
+      folder.focus();
+      fireEvent.keyDown(folder, { key: 'ArrowRight' });
+      expect(child).toHaveFocus();
+
+      fireEvent.keyDown(child, { key: 'ArrowLeft' });
+      expect(folder).toHaveFocus();
+
+      fireEvent.keyDown(folder, { key: 'ArrowLeft' });
+      expect(folder).toHaveAttribute('aria-expanded', 'false');
+      expect(screen.queryByRole('treeitem', { name: 'clip.mp4' })).not.toBeInTheDocument();
+      expect(screen.getByRole('button', { name: 'Expand footage' })).toBeInTheDocument();
+
+      fireEvent.keyDown(folder, { key: 'ArrowRight' });
+      expect(folder).toHaveAttribute('aria-expanded', 'true');
+      expect(screen.getByRole('treeitem', { name: 'clip.mp4' })).toBeInTheDocument();
+    });
+
+    it('should keep one tab stop when vertical and boundary keys are pressed', () => {
+      const entries = [
+        createMockEntry({
+          relativePath: 'footage',
+          name: 'footage',
+          isDirectory: true,
+          children: [createMockEntry({ relativePath: 'footage/clip.mp4', name: 'clip.mp4' })],
+        }),
+        createMockEntry({ relativePath: 'audio.mp3', name: 'audio.mp3' }),
+        createMockEntry({ relativePath: 'image.png', name: 'image.png' }),
+      ];
+
+      render(<FileTree entries={entries} />);
+
+      const folder = screen.getByRole('treeitem', { name: 'footage' });
+      const child = screen.getByRole('treeitem', { name: 'clip.mp4' });
+      const audio = screen.getByRole('treeitem', { name: 'audio.mp3' });
+      const image = screen.getByRole('treeitem', { name: 'image.png' });
+
+      expect(folder).toHaveAttribute('tabindex', '0');
+      expect(child).toHaveAttribute('tabindex', '-1');
+      expect(audio).toHaveAttribute('tabindex', '-1');
+      expect(image).toHaveAttribute('tabindex', '-1');
+
+      folder.focus();
+      fireEvent.keyDown(folder, { key: 'ArrowDown' });
+      expect(child).toHaveFocus();
+      expect(child).toHaveAttribute('tabindex', '0');
+      expect(folder).toHaveAttribute('tabindex', '-1');
+
+      fireEvent.keyDown(child, { key: 'ArrowDown' });
+      expect(audio).toHaveFocus();
+
+      fireEvent.keyDown(audio, { key: 'ArrowUp' });
+      expect(child).toHaveFocus();
+
+      fireEvent.keyDown(child, { key: 'End' });
+      expect(image).toHaveFocus();
+
+      fireEvent.keyDown(image, { key: 'Home' });
+      expect(folder).toHaveFocus();
+
+      fireEvent.click(screen.getByRole('button', { name: 'Collapse footage' }));
+      expect(folder).toHaveFocus();
+      expect(folder).toHaveAttribute('tabindex', '0');
+      expect(screen.queryByRole('treeitem', { name: 'clip.mp4' })).not.toBeInTheDocument();
+    });
+
+    it('should select without opening the file when Space or Enter is pressed', () => {
+      const onFileClick = vi.fn();
+      const onFileDoubleClick = vi.fn();
+      const entries = [createMockEntry({ relativePath: 'video1.mp4', name: 'video1.mp4' })];
+
+      render(
+        <FileTree
+          entries={entries}
+          onFileClick={onFileClick}
+          onFileDoubleClick={onFileDoubleClick}
+        />,
+      );
+
+      const file = screen.getByRole('treeitem', { name: 'video1.mp4' });
+      expect(file).toHaveAttribute('aria-selected', 'false');
+
+      fireEvent.keyDown(file, { key: ' ' });
+      expect(onFileClick).toHaveBeenCalledTimes(1);
+      expect(file).toHaveAttribute('aria-selected', 'true');
+
+      fireEvent.keyDown(file, { key: 'Enter' });
+      expect(onFileClick).toHaveBeenCalledTimes(2);
+      expect(onFileDoubleClick).not.toHaveBeenCalled();
+
+      fireEvent.doubleClick(screen.getByTitle('video1.mp4'));
+      expect(onFileDoubleClick).toHaveBeenCalledWith(
+        expect.objectContaining({ relativePath: 'video1.mp4' }),
+      );
     });
   });
 
@@ -149,9 +265,7 @@ describe('FileTree', () => {
         relativePath: 'a/b/c',
         name: 'c',
         isDirectory: true,
-        children: [
-          createMockEntry({ relativePath: 'a/b/c/clip.mp4', name: 'clip.mp4' }),
-        ],
+        children: [createMockEntry({ relativePath: 'a/b/c/clip.mp4', name: 'clip.mp4' })],
       });
       const mid = createMockEntry({
         relativePath: 'a/b',
