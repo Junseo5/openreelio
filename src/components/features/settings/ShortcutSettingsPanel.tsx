@@ -169,7 +169,7 @@ const PresetSelector = memo(function PresetSelector({
     }
   }, [isOpen]);
 
-  const activePresetData = SHORTCUT_PRESETS.find(p => p.id === activePreset);
+  const activePresetData = SHORTCUT_PRESETS.find((p) => p.id === activePreset);
   const displayName = activePresetData?.name ?? 'Custom';
 
   return (
@@ -180,9 +180,10 @@ const PresetSelector = memo(function PresetSelector({
         disabled={disabled}
         className={`
           flex items-center gap-2 px-3 py-2 text-sm rounded-lg border transition-colors
-          ${isOpen
-            ? 'border-primary-500 bg-primary-500/10'
-            : 'border-editor-border bg-editor-bg hover:border-editor-text-muted'
+          ${
+            isOpen
+              ? 'border-primary-500 bg-primary-500/10'
+              : 'border-editor-border bg-editor-bg hover:border-editor-text-muted'
           }
           disabled:opacity-50 disabled:cursor-not-allowed
         `}
@@ -191,7 +192,9 @@ const PresetSelector = memo(function PresetSelector({
       >
         <Keyboard className="w-4 h-4 text-editor-text-muted" />
         <span className="text-editor-text">{displayName}</span>
-        <ChevronDown className={`w-4 h-4 text-editor-text-muted transition-transform ${isOpen ? 'rotate-180' : ''}`} />
+        <ChevronDown
+          className={`w-4 h-4 text-editor-text-muted transition-transform ${isOpen ? 'rotate-180' : ''}`}
+        />
       </button>
 
       {isOpen && (
@@ -199,7 +202,7 @@ const PresetSelector = memo(function PresetSelector({
           className="absolute top-full left-0 mt-1 w-64 bg-editor-panel border border-editor-border rounded-lg shadow-xl z-50 py-1"
           role="listbox"
         >
-          {SHORTCUT_PRESETS.map(preset => (
+          {SHORTCUT_PRESETS.map((preset) => (
             <button
               key={preset.id}
               type="button"
@@ -209,9 +212,10 @@ const PresetSelector = memo(function PresetSelector({
               }}
               className={`
                 w-full flex items-center gap-3 px-3 py-2 text-left transition-colors
-                ${activePreset === preset.id
-                  ? 'bg-primary-500/10 text-primary-400'
-                  : 'text-editor-text hover:bg-editor-bg'
+                ${
+                  activePreset === preset.id
+                    ? 'bg-primary-500/10 text-primary-400'
+                    : 'text-editor-text hover:bg-editor-bg'
                 }
               `}
               role="option"
@@ -307,7 +311,10 @@ const ShortcutRow = memo(function ShortcutRow({
 
       {/* Conflict Warning */}
       {conflict && (
-        <div className="flex items-center gap-1 text-yellow-500 mr-3" title={`Conflicts with: ${conflict.existingBinding.label}`}>
+        <div
+          className="flex items-center gap-1 text-yellow-500 mr-3"
+          title={`Conflicts with: ${conflict.existingBinding.label}`}
+        >
           <AlertTriangle className="w-4 h-4" />
           <span className="text-xs max-w-[120px] truncate">
             Conflicts with {conflict.existingBinding.label}
@@ -344,9 +351,10 @@ const ShortcutRow = memo(function ShortcutRow({
             disabled={!binding.enabled}
             className={`
               px-4 py-1.5 text-sm rounded-lg border transition-colors min-w-[100px]
-              ${binding.customized
-                ? 'bg-primary-500/10 border-primary-500/30 text-primary-400'
-                : 'bg-editor-bg border-editor-border text-editor-text hover:border-primary-500/50'
+              ${
+                binding.customized
+                  ? 'bg-primary-500/10 border-primary-500/30 text-primary-400'
+                  : 'bg-editor-bg border-editor-border text-editor-text hover:border-primary-500/50'
               }
               disabled:opacity-50 disabled:cursor-not-allowed
             `}
@@ -378,8 +386,12 @@ const ShortcutRow = memo(function ShortcutRow({
             className="sr-only"
             aria-label={`${binding.enabled ? 'Disable' : 'Enable'} ${binding.label}`}
           />
-          <div className={`w-9 h-5 rounded-full transition-colors ${binding.enabled ? 'bg-primary-500' : 'bg-editor-border'}`}>
-            <div className={`w-4 h-4 rounded-full bg-white transform transition-transform ${binding.enabled ? 'translate-x-4' : 'translate-x-0.5'} mt-0.5`} />
+          <div
+            className={`w-9 h-5 rounded-full transition-colors ${binding.enabled ? 'bg-primary-500' : 'bg-editor-border'}`}
+          >
+            <div
+              className={`w-4 h-4 rounded-full bg-white transform transition-transform ${binding.enabled ? 'translate-x-4' : 'translate-x-0.5'} mt-0.5`}
+            />
           </div>
         </label>
       </div>
@@ -407,15 +419,15 @@ export const ShortcutSettingsPanel = memo(function ShortcutSettingsPanel({
   className = '',
 }: ShortcutSettingsPanelProps) {
   // Store hooks
-  const activePreset = useShortcutStore(state => state.activePreset);
-  const updateBinding = useShortcutStore(state => state.updateBinding);
-  const resetBinding = useShortcutStore(state => state.resetBinding);
-  const resetAllBindings = useShortcutStore(state => state.resetAllBindings);
-  const applyPreset = useShortcutStore(state => state.applyPreset);
-  const checkConflict = useShortcutStore(state => state.checkConflict);
-  const exportBindings = useShortcutStore(state => state.exportBindings);
-  const importBindings = useShortcutStore(state => state.importBindings);
-  const getBindingsByCategory = useShortcutStore(state => state.getBindingsByCategory);
+  const activePreset = useShortcutStore((state) => state.activePreset);
+  const updateBinding = useShortcutStore((state) => state.updateBinding);
+  const resetBinding = useShortcutStore((state) => state.resetBinding);
+  const resetAllBindings = useShortcutStore((state) => state.resetAllBindings);
+  const applyPreset = useShortcutStore((state) => state.applyPreset);
+  const checkConflict = useShortcutStore((state) => state.checkConflict);
+  const exportBindings = useShortcutStore((state) => state.exportBindings);
+  const importBindings = useShortcutStore((state) => state.importBindings);
+  const getBindingsByCategory = useShortcutStore((state) => state.getBindingsByCategory);
 
   // Local state
   const [searchQuery, setSearchQuery] = useState('');
@@ -480,11 +492,12 @@ export const ShortcutSettingsPanel = memo(function ShortcutSettingsPanel({
     };
 
     for (const category of CATEGORY_ORDER) {
-      filtered[category] = groupedBindings[category].filter(binding =>
-        binding.label.toLowerCase().includes(query) ||
-        binding.description.toLowerCase().includes(query) ||
-        binding.action.toLowerCase().includes(query) ||
-        formatShortcut(binding).toLowerCase().includes(query)
+      filtered[category] = groupedBindings[category].filter(
+        (binding) =>
+          binding.label.toLowerCase().includes(query) ||
+          binding.description.toLowerCase().includes(query) ||
+          binding.action.toLowerCase().includes(query) ||
+          formatShortcut(binding).toLowerCase().includes(query),
       );
     }
 
@@ -493,7 +506,7 @@ export const ShortcutSettingsPanel = memo(function ShortcutSettingsPanel({
 
   // Check if any results exist
   const hasResults = useMemo(() => {
-    return CATEGORY_ORDER.some(category => filteredGroups[category].length > 0);
+    return CATEGORY_ORDER.some((category) => filteredGroups[category].length > 0);
   }, [filteredGroups]);
 
   // Handlers
@@ -507,33 +520,39 @@ export const ShortcutSettingsPanel = memo(function ShortcutSettingsPanel({
     setPendingConflict(null);
   }, []);
 
-  const handleShortcutCaptured = useCallback((id: string, key: string, modifiers: ModifierKey[]) => {
-    // Check for conflicts
-    const conflict = checkConflict(id, key, modifiers);
+  const handleShortcutCaptured = useCallback(
+    (id: string, key: string, modifiers: ModifierKey[]) => {
+      // Check for conflicts
+      const conflict = checkConflict(id, key, modifiers);
 
-    if (conflict) {
-      // Show conflict warning but still allow the change
-      setPendingConflict(conflict);
-      // Apply the binding anyway (allowConflict=true)
-      updateBinding(id, { key, modifiers }, true);
-      // Clear editing state after a delay to show conflict
-      const timeoutId = setTimeout(() => {
+      if (conflict) {
+        // Show conflict warning but still allow the change
+        setPendingConflict(conflict);
+        // Apply the binding anyway (allowConflict=true)
+        updateBinding(id, { key, modifiers }, true);
+        // Clear editing state after a delay to show conflict
+        const timeoutId = setTimeout(() => {
+          setEditingId(null);
+          setPendingConflict(null);
+        }, 1500);
+        // Cleanup timeout on unmount handled by returning cleanup fn
+        return () => clearTimeout(timeoutId);
+      } else {
+        // No conflict, apply immediately
+        updateBinding(id, { key, modifiers });
         setEditingId(null);
         setPendingConflict(null);
-      }, 1500);
-      // Cleanup timeout on unmount handled by returning cleanup fn
-      return () => clearTimeout(timeoutId);
-    } else {
-      // No conflict, apply immediately
-      updateBinding(id, { key, modifiers });
-      setEditingId(null);
-      setPendingConflict(null);
-    }
-  }, [checkConflict, updateBinding]);
+      }
+    },
+    [checkConflict, updateBinding],
+  );
 
-  const handleResetBinding = useCallback((id: string) => {
-    resetBinding(id);
-  }, [resetBinding]);
+  const handleResetBinding = useCallback(
+    (id: string) => {
+      resetBinding(id);
+    },
+    [resetBinding],
+  );
 
   const handleResetAll = useCallback(() => {
     resetAllBindings();
@@ -541,10 +560,15 @@ export const ShortcutSettingsPanel = memo(function ShortcutSettingsPanel({
     setSuccessMessage('All shortcuts reset to defaults');
   }, [resetAllBindings]);
 
-  const handlePresetSelect = useCallback((presetId: string) => {
-    applyPreset(presetId);
-    setSuccessMessage(`Applied "${SHORTCUT_PRESETS.find(p => p.id === presetId)?.name}" preset`);
-  }, [applyPreset]);
+  const handlePresetSelect = useCallback(
+    (presetId: string) => {
+      applyPreset(presetId);
+      setSuccessMessage(
+        `Applied "${SHORTCUT_PRESETS.find((p) => p.id === presetId)?.name}" preset`,
+      );
+    },
+    [applyPreset],
+  );
 
   const handleExport = useCallback(() => {
     try {
@@ -568,33 +592,36 @@ export const ShortcutSettingsPanel = memo(function ShortcutSettingsPanel({
     fileInputRef.current?.click();
   }, []);
 
-  const handleImportFile = useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (!file) return;
+  const handleImportFile = useCallback(
+    (event: React.ChangeEvent<HTMLInputElement>) => {
+      const file = event.target.files?.[0];
+      if (!file) return;
 
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      try {
-        const content = e.target?.result as string;
-        const success = importBindings(content);
-        if (success) {
-          setSuccessMessage('Shortcuts imported successfully');
-          setImportError(null);
-        } else {
-          setImportError('Invalid shortcuts file format');
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        try {
+          const content = e.target?.result as string;
+          const success = importBindings(content);
+          if (success) {
+            setSuccessMessage('Shortcuts imported successfully');
+            setImportError(null);
+          } else {
+            setImportError('Invalid shortcuts file format');
+          }
+        } catch {
+          setImportError('Failed to read shortcuts file');
         }
-      } catch {
-        setImportError('Failed to read shortcuts file');
-      }
-    };
-    reader.onerror = () => {
-      setImportError('Failed to read file');
-    };
-    reader.readAsText(file);
+      };
+      reader.onerror = () => {
+        setImportError('Failed to read file');
+      };
+      reader.readAsText(file);
 
-    // Reset input so same file can be selected again
-    event.target.value = '';
-  }, [importBindings]);
+      // Reset input so same file can be selected again
+      event.target.value = '';
+    },
+    [importBindings],
+  );
 
   return (
     <div className={`flex flex-col gap-4 ${className}`} data-testid="shortcut-settings-panel">
@@ -604,10 +631,7 @@ export const ShortcutSettingsPanel = memo(function ShortcutSettingsPanel({
 
         <div className="flex items-center gap-2 flex-wrap">
           {/* Preset Selector */}
-          <PresetSelector
-            activePreset={activePreset}
-            onSelectPreset={handlePresetSelect}
-          />
+          <PresetSelector activePreset={activePreset} onSelectPreset={handlePresetSelect} />
 
           {/* Import/Export */}
           <button
@@ -661,6 +685,7 @@ export const ShortcutSettingsPanel = memo(function ShortcutSettingsPanel({
             type="button"
             onClick={() => setSuccessMessage(null)}
             className="p-1 hover:bg-green-500/20 rounded"
+            aria-label="Dismiss success message"
           >
             <X className="w-4 h-4" />
           </button>
@@ -674,6 +699,7 @@ export const ShortcutSettingsPanel = memo(function ShortcutSettingsPanel({
             type="button"
             onClick={() => setImportError(null)}
             className="p-1 hover:bg-red-500/20 rounded"
+            aria-label="Dismiss error message"
           >
             <X className="w-4 h-4" />
           </button>
@@ -710,7 +736,7 @@ export const ShortcutSettingsPanel = memo(function ShortcutSettingsPanel({
 
       {/* Shortcuts List */}
       <div className="flex flex-col gap-6 max-h-[60vh] overflow-y-auto pr-1">
-        {CATEGORY_ORDER.map(category => {
+        {CATEGORY_ORDER.map((category) => {
           const categoryBindings = filteredGroups[category];
           if (categoryBindings.length === 0) return null;
 
@@ -723,7 +749,7 @@ export const ShortcutSettingsPanel = memo(function ShortcutSettingsPanel({
                 </span>
               </h4>
               <div className="flex flex-col gap-1">
-                {categoryBindings.map(binding => (
+                {categoryBindings.map((binding) => (
                   <ShortcutRow
                     key={binding.id}
                     binding={binding}

@@ -14,11 +14,7 @@
 
 import { useState, useCallback, useRef, useEffect } from 'react';
 import { Target, Plus, Trash2, Settings, Lock, Play, Square, ChevronDown } from 'lucide-react';
-import type {
-  MotionTrack,
-  TrackPoint,
-  TrackingMethod,
-} from '@/utils/motionTracking';
+import type { MotionTrack, TrackPoint, TrackingMethod } from '@/utils/motionTracking';
 import {
   ALL_TRACKING_METHODS,
   getTrackingMethodLabel,
@@ -84,10 +80,7 @@ export function MotionTrackingControl({
     if (!isMethodOpen) return;
 
     const handleClickOutside = (event: MouseEvent) => {
-      if (
-        methodRef.current &&
-        !methodRef.current.contains(event.target as Node)
-      ) {
+      if (methodRef.current && !methodRef.current.contains(event.target as Node)) {
         setIsMethodOpen(false);
       }
     };
@@ -105,7 +98,7 @@ export function MotionTrackingControl({
       });
       setIsMethodOpen(false);
     },
-    [track, onTrackChange]
+    [track, onTrackChange],
   );
 
   // Handle settings change
@@ -116,7 +109,7 @@ export function MotionTrackingControl({
         settings: { ...track.settings, [key]: value },
       });
     },
-    [track, onTrackChange]
+    [track, onTrackChange],
   );
 
   // Handle point selection
@@ -131,7 +124,7 @@ export function MotionTrackingControl({
       const data = interpolateTrackData(point.keyframes, currentTime);
       return data?.confidence ?? 0;
     },
-    [currentTime]
+    [currentTime],
   );
 
   return (
@@ -191,9 +184,11 @@ export function MotionTrackingControl({
                   onClick={() => handleMethodChange(method)}
                   className={`
                     px-3 py-1.5 text-sm cursor-pointer
-                    ${track.settings.method === method
-                      ? 'bg-blue-600 text-white'
-                      : 'text-zinc-200 hover:bg-zinc-700'}
+                    ${
+                      track.settings.method === method
+                        ? 'bg-blue-600 text-white'
+                        : 'text-zinc-200 hover:bg-zinc-700'
+                    }
                     transition-colors
                   `}
                 >
@@ -268,11 +263,7 @@ export function MotionTrackingControl({
                       className="w-2 h-2 rounded-full"
                       style={{
                         backgroundColor:
-                          confidence > 0.8
-                            ? '#22c55e'
-                            : confidence > 0.5
-                            ? '#eab308'
-                            : '#ef4444',
+                          confidence > 0.8 ? '#22c55e' : confidence > 0.5 ? '#eab308' : '#ef4444',
                       }}
                       title={`Confidence: ${Math.round(confidence * 100)}%`}
                     />
@@ -286,6 +277,7 @@ export function MotionTrackingControl({
                         onRemovePoint(point.id);
                       }}
                       disabled={isControlsDisabled}
+                      aria-label={`Delete tracking point ${point.name}`}
                       className="p-1 rounded hover:bg-zinc-600 text-zinc-400 hover:text-red-400 disabled:opacity-50"
                     >
                       <Trash2 size={12} />
@@ -365,9 +357,7 @@ export function MotionTrackingControl({
                 <label htmlFor="search-area" className="text-xs text-zinc-400">
                   Search Area
                 </label>
-                <span className="text-xs text-zinc-500">
-                  {track.settings.searchAreaSize}px
-                </span>
+                <span className="text-xs text-zinc-500">{track.settings.searchAreaSize}px</span>
               </div>
               <input
                 id="search-area"
@@ -376,9 +366,7 @@ export function MotionTrackingControl({
                 max="300"
                 step="10"
                 value={track.settings.searchAreaSize}
-                onChange={(e) =>
-                  handleSettingsChange('searchAreaSize', parseInt(e.target.value))
-                }
+                onChange={(e) => handleSettingsChange('searchAreaSize', parseInt(e.target.value))}
                 disabled={isControlsDisabled}
                 aria-label="Search Area"
                 className="w-full h-2 bg-zinc-700 rounded-lg appearance-none cursor-pointer accent-blue-500 disabled:opacity-50"
@@ -391,9 +379,7 @@ export function MotionTrackingControl({
                 <label htmlFor="pattern-size" className="text-xs text-zinc-400">
                   Pattern Size
                 </label>
-                <span className="text-xs text-zinc-500">
-                  {track.settings.patternSize}px
-                </span>
+                <span className="text-xs text-zinc-500">{track.settings.patternSize}px</span>
               </div>
               <input
                 id="pattern-size"
@@ -402,9 +388,7 @@ export function MotionTrackingControl({
                 max="100"
                 step="5"
                 value={track.settings.patternSize}
-                onChange={(e) =>
-                  handleSettingsChange('patternSize', parseInt(e.target.value))
-                }
+                onChange={(e) => handleSettingsChange('patternSize', parseInt(e.target.value))}
                 disabled={isControlsDisabled}
                 aria-label="Pattern Size"
                 className="w-full h-2 bg-zinc-700 rounded-lg appearance-none cursor-pointer accent-blue-500 disabled:opacity-50"
@@ -429,10 +413,7 @@ export function MotionTrackingControl({
                 step="0.05"
                 value={track.settings.confidenceThreshold}
                 onChange={(e) =>
-                  handleSettingsChange(
-                    'confidenceThreshold',
-                    parseFloat(e.target.value)
-                  )
+                  handleSettingsChange('confidenceThreshold', parseFloat(e.target.value))
                 }
                 disabled={isControlsDisabled}
                 aria-label="Confidence Threshold"
