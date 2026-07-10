@@ -31,7 +31,7 @@ export function ErrorPartRenderer({
       data-testid="error-part"
     >
       <div className="flex items-start gap-2">
-        <span className="text-red-400 text-sm mt-0.5">\u26A0</span>
+        <span className="text-red-400 text-sm mt-0.5">{'\u26A0'}</span>
         <div className="flex-1 min-w-0">
           <p className="max-w-full break-words text-sm text-red-400 [overflow-wrap:anywhere]">
             {displayMessage}

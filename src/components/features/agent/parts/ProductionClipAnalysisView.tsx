@@ -146,6 +146,9 @@ export function ProductionClipAnalysisView({ root }: { root: ClipAnalysisData })
                     alt={finding.label ? `${finding.label} preview` : 'Clip preview'}
                     className="aspect-video w-full object-cover"
                     loading="lazy"
+                    onError={(event) => {
+                      event.currentTarget.hidden = true;
+                    }}
                   />
                 )}
                 <figcaption className="min-w-0 space-y-1 px-2 py-1.5">

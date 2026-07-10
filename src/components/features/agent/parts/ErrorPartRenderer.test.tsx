@@ -37,6 +37,7 @@ describe('ErrorPartRenderer', () => {
     render(<ErrorPartRenderer part={part} />);
 
     expect(screen.getByTestId('error-part')).toBeInTheDocument();
+    expect(screen.getByText('\u26A0')).toBeInTheDocument();
     expect(screen.getByText('Failed to split clip')).toBeInTheDocument();
   });
 

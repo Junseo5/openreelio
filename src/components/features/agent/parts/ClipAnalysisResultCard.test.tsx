@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
 import { ClipAnalysisResultCard } from './ClipAnalysisResultCard';
 
@@ -48,6 +48,10 @@ describe('ClipAnalysisResultCard', () => {
     expect(screen.queryByText(/private-query/)).not.toBeInTheDocument();
     expect(screen.queryByText(/private-status/)).not.toBeInTheDocument();
     expect(screen.queryByText(/99\.25/)).not.toBeInTheDocument();
+
+    const preview = screen.getByRole('img', { name: 'Interview.mp4 preview' });
+    fireEvent.error(preview);
+    expect(preview).toHaveAttribute('hidden');
   });
 
   it('should cap findings when multiple hour-long clips are summarized', () => {
