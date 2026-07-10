@@ -7,6 +7,7 @@
 
 import React, { useState, useCallback, useEffect, useMemo, useRef } from 'react';
 import { X, MessageSquare, AlertTriangle, Loader2, Download, CheckCircle2 } from 'lucide-react';
+import { ModalShell } from '@/components/ui';
 import type { AssetData } from '.';
 
 // =============================================================================
@@ -262,16 +263,6 @@ export const TranscriptionDialog: React.FC<TranscriptionDialogProps> = ({
     [onCancel, isProcessing, installedModelIds.length, handleConfirm],
   );
 
-  // Handle backdrop click
-  const handleBackdropClick = useCallback(
-    (e: React.MouseEvent) => {
-      if (e.target === e.currentTarget) {
-        onCancel();
-      }
-    },
-    [onCancel],
-  );
-
   // Don't render if not open
   if (!isOpen) {
     return null;
@@ -283,19 +274,15 @@ export const TranscriptionDialog: React.FC<TranscriptionDialogProps> = ({
   const installableModels = modelStatuses.filter((candidate) => !candidate.installed);
 
   return (
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm"
-      onClick={handleBackdropClick}
+    <ModalShell
+      ariaLabelledBy={titleId}
+      onRequestClose={onCancel}
       onKeyDown={handleKeyDown}
-    >
-      <div
-        data-testid="transcription-dialog"
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby={titleId}
-        className="bg-neutral-900 rounded-lg shadow-xl border border-neutral-700 w-full max-w-md mx-4"
-      >
-        {/* Header */}
+      overlayClassName="bg-black/60 backdrop-blur-sm"
+      testId="transcription-dialog"
+      widthClassName="max-w-md"
+      dialogClassName="rounded-lg border border-neutral-700 bg-neutral-900 shadow-xl"
+      header={
         <div className="flex items-center justify-between p-4 border-b border-neutral-700">
           <h2 id={titleId} className="text-lg font-semibold text-white flex items-center gap-2">
             <MessageSquare className="w-5 h-5 text-blue-400" />
@@ -310,196 +297,14 @@ export const TranscriptionDialog: React.FC<TranscriptionDialogProps> = ({
             <X className="w-5 h-5" />
           </button>
         </div>
-
-        {/* Body */}
-        <div className="p-4 space-y-4">
-          {/* Asset Info */}
-          <div className="p-3 rounded bg-neutral-800 border border-neutral-700">
-            <div className="text-sm font-medium text-white truncate">{asset.name}</div>
-            {asset.duration !== undefined && (
-              <div className="text-xs text-neutral-400 mt-1">
-                Duration: {formatDuration(asset.duration)}
-              </div>
-            )}
-          </div>
-
-          {/* Long Duration Warning */}
-          {isLongDuration && (
-            <div className="flex items-center gap-2 p-3 rounded bg-yellow-900/30 border border-yellow-700/50 text-yellow-400 text-sm">
-              <AlertTriangle className="w-4 h-4 flex-shrink-0" />
-              <span>
-                This file is {formatDuration(asset.duration ?? 0)} long. Transcription may take a
-                while.
-              </span>
-            </div>
-          )}
-
-          {(!hasAvailableModel || modelStatusMessage) && (
-            <div className="flex items-center gap-2 p-3 rounded bg-red-950/40 border border-red-800/60 text-red-300 text-sm">
-              <AlertTriangle className="w-4 h-4 flex-shrink-0" />
-              <span>
-                {modelStatusMessage ??
-                  'No installed Whisper model was found. Install a local model before starting transcription.'}
-              </span>
-            </div>
-          )}
-
-          {modelStatuses.length > 0 && (
-            <div className="rounded border border-neutral-700 bg-neutral-900">
-              <div className="px-3 py-2 text-sm font-medium text-neutral-200 border-b border-neutral-700">
-                Local Models
-              </div>
-              <div className="divide-y divide-neutral-800">
-                {modelStatuses.map((candidate) => {
-                  const isInstalling = installingModel === candidate.id;
-                  const progressLabel =
-                    isInstalling && installProgress !== null
-                      ? `${Math.round(installProgress)}%`
-                      : null;
-                  return (
-                    <div key={candidate.id} className="flex items-center gap-3 px-3 py-2">
-                      <div className="min-w-0 flex-1">
-                        <div className="flex items-center gap-2">
-                          <span className="text-sm text-white">{candidate.displayName}</span>
-                          {candidate.recommended && (
-                            <span className="text-[11px] text-blue-300">Recommended</span>
-                          )}
-                        </div>
-                        <div className="text-xs text-neutral-500 truncate">
-                          {formatBytes(candidate.sizeBytes ?? candidate.estimatedSizeBytes)} ·{' '}
-                          {candidate.license}
-                        </div>
-                      </div>
-                      {candidate.installed ? (
-                        <span className="inline-flex items-center gap-1 text-xs text-emerald-300">
-                          <CheckCircle2 className="w-3.5 h-3.5" />
-                          Installed
-                        </span>
-                      ) : (
-                        <button
-                          type="button"
-                          onClick={() => onInstallModel?.(candidate.id)}
-                          disabled={!onInstallModel || isProcessing || Boolean(installingModel)}
-                          className="inline-flex items-center gap-1.5 rounded border border-neutral-600 px-2 py-1 text-xs text-neutral-200 hover:bg-neutral-800 disabled:opacity-50 disabled:cursor-not-allowed"
-                        >
-                          {isInstalling ? (
-                            <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                          ) : (
-                            <Download className="w-3.5 h-3.5" />
-                          )}
-                          {isInstalling ? (progressLabel ?? 'Installing') : 'Install'}
-                        </button>
-                      )}
-                    </div>
-                  );
-                })}
-              </div>
-              {installableModels.length > 0 && (
-                <div className="px-3 py-2 text-xs text-neutral-500 border-t border-neutral-800">
-                  Models download from ggerganov/whisper.cpp and are stored locally.
-                </div>
-              )}
-            </div>
-          )}
-
-          {/* Language Selection */}
-          <div>
-            <label
-              htmlFor="transcription-language"
-              className="block text-sm font-medium text-neutral-300 mb-1"
-            >
-              Language
-            </label>
-            <select
-              ref={languageSelectRef}
-              autoFocus
-              id="transcription-language"
-              value={language}
-              onChange={(e) => setLanguage(e.target.value)}
-              disabled={isProcessing}
-              className="w-full px-3 py-2 rounded bg-neutral-800 border border-neutral-600 text-white
-                focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50"
-            >
-              {LANGUAGES.map((lang) => (
-                <option key={lang.code} value={lang.code}>
-                  {lang.name}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          {/* Model Selection (if multiple models available) */}
-          {hasAvailableModel && (
-            <div>
-              <label
-                htmlFor="transcription-model"
-                className="block text-sm font-medium text-neutral-300 mb-1"
-              >
-                Model
-              </label>
-              <select
-                id="transcription-model"
-                value={model}
-                onChange={(e) => setModel(e.target.value)}
-                disabled={isProcessing}
-                className="w-full px-3 py-2 rounded bg-neutral-800 border border-neutral-600 text-white
-                  focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50"
-              >
-                {installedModelIds.map((m) => (
-                  <option key={m} value={m}>
-                    {modelStatuses.find((candidate) => candidate.id === m)?.displayName ??
-                      formatModelName(m)}
-                  </option>
-                ))}
-              </select>
-              <p className="mt-1 text-xs text-neutral-500">
-                Larger models are more accurate but slower.
-              </p>
-              {recommendedUninstalledModel && (
-                <p className="mt-1 text-xs text-blue-300">
-                  For accurate subtitles on sung or non-English audio, install the recommended{' '}
-                  {recommendedUninstalledModel.displayName} model below.
-                </p>
-              )}
-            </div>
-          )}
-
-          {/* Options */}
-          <div className="space-y-3">
-            <label className="flex items-center gap-2 cursor-pointer">
-              <input
-                type="checkbox"
-                checked={addToTimeline}
-                onChange={(e) => setAddToTimeline(e.target.checked)}
-                disabled={isProcessing}
-                className="w-4 h-4 rounded border-neutral-600 bg-neutral-800 text-blue-500
-                  focus:ring-2 focus:ring-blue-500 focus:ring-offset-0"
-              />
-              <span className="text-sm text-neutral-300">Add to timeline as captions</span>
-            </label>
-
-            <label className="flex items-center gap-2 cursor-pointer">
-              <input
-                type="checkbox"
-                checked={indexForSearch}
-                onChange={(e) => setIndexForSearch(e.target.checked)}
-                disabled={isProcessing}
-                className="w-4 h-4 rounded border-neutral-600 bg-neutral-800 text-blue-500
-                  focus:ring-2 focus:ring-blue-500 focus:ring-offset-0"
-              />
-              <span className="text-sm text-neutral-300">Index for search</span>
-            </label>
-          </div>
-        </div>
-
-        {/* Footer */}
-        <div className="flex items-center justify-end gap-2 p-4 border-t border-neutral-700">
+      }
+      footer={
+        <div className="flex items-center justify-end gap-2 border-t border-neutral-700 p-4">
           <button
             type="button"
             onClick={onCancel}
             disabled={isProcessing}
-            className="px-4 py-2 text-sm rounded border border-neutral-600 text-neutral-300
-              hover:bg-neutral-800 disabled:opacity-50 transition-colors"
+            className="rounded border border-neutral-600 px-4 py-2 text-sm text-neutral-300 transition-colors hover:bg-neutral-800 disabled:opacity-50"
           >
             Cancel
           </button>
@@ -507,8 +312,7 @@ export const TranscriptionDialog: React.FC<TranscriptionDialogProps> = ({
             type="button"
             onClick={handleConfirm}
             disabled={!canStart}
-            className="px-4 py-2 text-sm rounded bg-blue-600 text-white hover:bg-blue-500
-              disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center gap-2"
+            className="flex items-center gap-2 rounded bg-blue-600 px-4 py-2 text-sm text-white transition-colors hover:bg-blue-500 disabled:cursor-not-allowed disabled:opacity-50"
           >
             {isProcessing ? (
               <>
@@ -520,8 +324,188 @@ export const TranscriptionDialog: React.FC<TranscriptionDialogProps> = ({
             )}
           </button>
         </div>
+      }
+    >
+      <div className="space-y-4 p-4">
+        {/* Asset Info */}
+        <div className="p-3 rounded bg-neutral-800 border border-neutral-700">
+          <div className="text-sm font-medium text-white truncate">{asset.name}</div>
+          {asset.duration !== undefined && (
+            <div className="text-xs text-neutral-400 mt-1">
+              Duration: {formatDuration(asset.duration)}
+            </div>
+          )}
+        </div>
+
+        {/* Long Duration Warning */}
+        {isLongDuration && (
+          <div className="flex items-center gap-2 p-3 rounded bg-yellow-900/30 border border-yellow-700/50 text-yellow-400 text-sm">
+            <AlertTriangle className="w-4 h-4 flex-shrink-0" />
+            <span>
+              This file is {formatDuration(asset.duration ?? 0)} long. Transcription may take a
+              while.
+            </span>
+          </div>
+        )}
+
+        {(!hasAvailableModel || modelStatusMessage) && (
+          <div className="flex items-center gap-2 p-3 rounded bg-red-950/40 border border-red-800/60 text-red-300 text-sm">
+            <AlertTriangle className="w-4 h-4 flex-shrink-0" />
+            <span>
+              {modelStatusMessage ??
+                'No installed Whisper model was found. Install a local model before starting transcription.'}
+            </span>
+          </div>
+        )}
+
+        {modelStatuses.length > 0 && (
+          <div className="rounded border border-neutral-700 bg-neutral-900">
+            <div className="px-3 py-2 text-sm font-medium text-neutral-200 border-b border-neutral-700">
+              Local Models
+            </div>
+            <div className="divide-y divide-neutral-800">
+              {modelStatuses.map((candidate) => {
+                const isInstalling = installingModel === candidate.id;
+                const progressLabel =
+                  isInstalling && installProgress !== null
+                    ? `${Math.round(installProgress)}%`
+                    : null;
+                return (
+                  <div key={candidate.id} className="flex items-center gap-3 px-3 py-2">
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm text-white">{candidate.displayName}</span>
+                        {candidate.recommended && (
+                          <span className="text-[11px] text-blue-300">Recommended</span>
+                        )}
+                      </div>
+                      <div className="text-xs text-neutral-500 truncate">
+                        {formatBytes(candidate.sizeBytes ?? candidate.estimatedSizeBytes)} ·{' '}
+                        {candidate.license}
+                      </div>
+                    </div>
+                    {candidate.installed ? (
+                      <span className="inline-flex items-center gap-1 text-xs text-emerald-300">
+                        <CheckCircle2 className="w-3.5 h-3.5" />
+                        Installed
+                      </span>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={() => onInstallModel?.(candidate.id)}
+                        disabled={!onInstallModel || isProcessing || Boolean(installingModel)}
+                        className="inline-flex items-center gap-1.5 rounded border border-neutral-600 px-2 py-1 text-xs text-neutral-200 hover:bg-neutral-800 disabled:opacity-50 disabled:cursor-not-allowed"
+                      >
+                        {isInstalling ? (
+                          <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                        ) : (
+                          <Download className="w-3.5 h-3.5" />
+                        )}
+                        {isInstalling ? (progressLabel ?? 'Installing') : 'Install'}
+                      </button>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+            {installableModels.length > 0 && (
+              <div className="px-3 py-2 text-xs text-neutral-500 border-t border-neutral-800">
+                Models download from ggerganov/whisper.cpp and are stored locally.
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Language Selection */}
+        <div>
+          <label
+            htmlFor="transcription-language"
+            className="block text-sm font-medium text-neutral-300 mb-1"
+          >
+            Language
+          </label>
+          <select
+            ref={languageSelectRef}
+            autoFocus
+            id="transcription-language"
+            value={language}
+            onChange={(e) => setLanguage(e.target.value)}
+            disabled={isProcessing}
+            className="w-full px-3 py-2 rounded bg-neutral-800 border border-neutral-600 text-white
+                focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50"
+          >
+            {LANGUAGES.map((lang) => (
+              <option key={lang.code} value={lang.code}>
+                {lang.name}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        {/* Model Selection (if multiple models available) */}
+        {hasAvailableModel && (
+          <div>
+            <label
+              htmlFor="transcription-model"
+              className="block text-sm font-medium text-neutral-300 mb-1"
+            >
+              Model
+            </label>
+            <select
+              id="transcription-model"
+              value={model}
+              onChange={(e) => setModel(e.target.value)}
+              disabled={isProcessing}
+              className="w-full px-3 py-2 rounded bg-neutral-800 border border-neutral-600 text-white
+                  focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50"
+            >
+              {installedModelIds.map((m) => (
+                <option key={m} value={m}>
+                  {modelStatuses.find((candidate) => candidate.id === m)?.displayName ??
+                    formatModelName(m)}
+                </option>
+              ))}
+            </select>
+            <p className="mt-1 text-xs text-neutral-500">
+              Larger models are more accurate but slower.
+            </p>
+            {recommendedUninstalledModel && (
+              <p className="mt-1 text-xs text-blue-300">
+                For accurate subtitles on sung or non-English audio, install the recommended{' '}
+                {recommendedUninstalledModel.displayName} model below.
+              </p>
+            )}
+          </div>
+        )}
+
+        {/* Options */}
+        <div className="space-y-3">
+          <label className="flex items-center gap-2 cursor-pointer">
+            <input
+              type="checkbox"
+              checked={addToTimeline}
+              onChange={(e) => setAddToTimeline(e.target.checked)}
+              disabled={isProcessing}
+              className="w-4 h-4 rounded border-neutral-600 bg-neutral-800 text-blue-500
+                  focus:ring-2 focus:ring-blue-500 focus:ring-offset-0"
+            />
+            <span className="text-sm text-neutral-300">Add to timeline as captions</span>
+          </label>
+
+          <label className="flex items-center gap-2 cursor-pointer">
+            <input
+              type="checkbox"
+              checked={indexForSearch}
+              onChange={(e) => setIndexForSearch(e.target.checked)}
+              disabled={isProcessing}
+              className="w-4 h-4 rounded border-neutral-600 bg-neutral-800 text-blue-500
+                  focus:ring-2 focus:ring-blue-500 focus:ring-offset-0"
+            />
+            <span className="text-sm text-neutral-300">Index for search</span>
+          </label>
+        </div>
       </div>
-    </div>
+    </ModalShell>
   );
 };
 
